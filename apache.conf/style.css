@@ -10,8 +10,8 @@
 
 html {
 	min-height:100%;
-	border-top:10px solid #ECEEF1;
-	border-bottom:10px solid #ECEEF1;
+	// border-top:10px solid #ECEEF1;
+	// border-bottom:10px solid #ECEEF1;
 	color:#61666c;
 	font-weight:400;
 	font-size:1em;
@@ -38,9 +38,11 @@ a:hover {
 }
 
 .wrapper {
-	margin:0 auto;
-	padding-top:20px;
+	margin:20px auto;
+	padding-left:20px;
 	max-width:80%;
+	border: 1px solid #CCC;
+	border-radius: 10px;
 }
 
 .header {
