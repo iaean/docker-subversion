@@ -2,13 +2,14 @@ FROM alpine:latest
 
 MAINTAINER Andreas Schulze <asl@iaean.net>
 
-RUN apk add --no-cache apache2 apache2-webdav apache2-ldap apache2-icons apache2-utils && \
+RUN apk add --no-cache apache2 apache2-webdav apache2-ldap apache2-ssl apache2-utils && \
     apk add --no-cache php7-xml php7-apache2 && \
     apk add --no-cache subversion mod_dav_svn cyrus-sasl && \
     apk add --no-cache bash joe && \
     rm -f /etc/apache2/conf.d/info.conf \
           /etc/apache2/conf.d/languages.conf \
           /etc/apache2/conf.d/dav.conf \
+          /etc/apache2/conf.d/ssl.conf \
           /etc/apache2/conf.d/userdir.conf && \
     mkdir /etc/subversion && \
     mkdir /run/apache2 && \
@@ -34,8 +35,7 @@ RUN svnadmin create sandbox/test && \
       svnadmin -q load subversion/websvn && \
     svn cat file://localhost/data/svn/subversion/subversion/subversion/trunk/tools/xslt/svnindex.css > .svnindex.css && \
     svn cat file://localhost/data/svn/subversion/subversion/subversion/trunk/tools/xslt/svnindex.xsl > .svnindex.xsl && \
-    sed -i 's/\/svnindex.css/\/repos\/.svnindex.css/' .svnindex.xsl && \
-    chown -R apache:apache .
+    sed -i 's/\/svnindex.css/\/repos\/.svnindex.css/' .svnindex.xsl
 
 RUN svn export file://localhost/data/svn/subversion/websvn/trunk /var/www/html/ && \
     chown -R apache:apache /var/www/html/cache && \
@@ -46,12 +46,22 @@ RUN svn export file://localhost/data/svn/subversion/websvn/trunk /var/www/html/ 
 
 COPY htpasswd /data/svn/.htpasswd
 COPY svn.access /data/svn/.svn.access
+
 COPY apache.conf/httpd.conf /etc/apache2/
 COPY apache.conf/ldap.conf /etc/apache2/conf.d/
 COPY apache.conf/svn.conf /etc/apache2/conf.d/
 COPY apache.conf/websvn.conf /etc/apache2/conf.d/
+COPY apache.conf/autoindex.conf /etc/apache2/conf.d/
+COPY apache.conf/icons/* /var/www/localhost/icons/
+
+COPY apache.conf/header.html /data/svn/.header.html
+COPY apache.conf/footer.html /data/svn/.footer.html
+COPY apache.conf/style.css /data/svn/.style.css
+
 COPY websvn.conf /var/www/html/include/config.php
 # COPY websvn.conf /var/www/localhost/htdocs/websvn/include/config.php
+
+RUN chown -R apache:apache .
 
 EXPOSE 80 3960
 VOLUME ["/data/svn"]
