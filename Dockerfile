@@ -116,7 +116,7 @@ COPY websvn.conf /var/www/html/include/config.php
 # COPY websvn.conf /var/www/localhost/htdocs/websvn/include/config.php
 
 COPY svnserve.conf /etc/subversion/
-COPY svnsasl.conf /etc/sasl2/
+COPY svnsasl.conf /etc/sasl2/svn.conf
 
 RUN chown -R apache:apache .
 

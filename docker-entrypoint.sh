@@ -47,38 +47,42 @@ if [[ `basename ${1}` == "httpd" ]]; then
   #   done
   # done
 
-  if [[ -n $LDAP_ALIAS && -n $LDAP_URL && -n $LDAP_BindDN && -n $LDAP_BindPW ]]; then
-cat <<EOT >>/etc/apache2/conf.d/ldap.conf
-<AuthnProviderAlias ldap ${LDAP_ALIAS}>
-  AuthLDAPURL ${LDAP_URL}
+  if [[ -n $LDAP_BindDN && -n $LDAP_BindPW ]]; then
+    if [[ -n $APACHE_LDAP_ALIAS && -n $APACHE_LDAP_URL ]]; then
+      cat <<EOT >>/etc/apache2/conf.d/ldap.conf
+<AuthnProviderAlias ldap ${APACHE_LDAP_ALIAS}>
+  AuthLDAPURL ${APACHE_LDAP_URL}
   AuthLDAPBindDN ${LDAP_BindDN}
   AuthLDAPBindPassword ${LDAP_BindPW}
   AuthLDAPBindAuthoritative off
 </AuthnProviderAlias>
 EOT
-    sed -i -e "s/AuthBasicProvider file/AuthBasicProvider file ${LDAP_ALIAS}/g" /etc/apache2/conf.d/*.conf
-  fi
-  if [[ -n $LDAP_SERVER && -n $LDAP_SEARCH_BASE && -n $LDAP_FILTER && -n $LDAP_BindDN && -n $LDAP_BindPW ]]; then
-cat <<EOT >/etc/sasl2/saslauthd.conf
-ldap_servers: ${LDAP_SERVER}
+      sed -i -e "s/AuthBasicProvider file/AuthBasicProvider file ${APACHE_LDAP_ALIAS}/g" /etc/apache2/conf.d/*.conf
+    fi
+    if [[ -n $SASL_LDAP_SERVER && -n $SASL_LDAP_SEARCHBASE && -n $SASL_LDAP_FILTER ]]; then
+      cat <<EOT >/etc/saslauthd.conf
+ldap_servers: ${SASL_LDAP_SERVER}
 ldap_bind_dn: ${LDAP_BindDN}
 ldap_bind_pw: ${LDAP_BindPW}
-ldap_search_base: ${LDAP_SEARCH_BASE}
+ldap_search_base: ${SASL_LDAP_SEARCHBASE}
 ldap_scope: sub
-ldap_filter: ${LDAP_FILTER}
+ldap_filter: ${SASL_LDAP_FILTER}
 ldap_use_sasl: no
 ldap_tls_check_peer: no
 ldap_tls_cacert_file: /etc/ssl/cert.pem
+# ldap_start_tls: no
+# ldap_tls_ciphers: HIGH:MEDIUM:-SSLv3
 EOT
+    fi
   fi
-  
+
   touch /var/log/apache2/error.log
   touch /var/log/apache2/access.log
 
   tail -f /var/log/apache2/error.log &
   tail -f /var/log/apache2/access.log &
 
-  /usr/sbin/saslauthd -m /var/run/saslauthd -a ldap -O /etc/sasl2/saslauthd.conf -n 3
+  /usr/sbin/saslauthd -m /var/run/saslauthd -a ldap -O /etc/saslauthd.conf -n 3
   sudo -u apache -g apache /usr/bin/svnserve -d -r ${BASE} --listen-port 3690 --config-file=/etc/subversion/svnserve.conf
   exec "$@" </dev/null 2>&1
 
