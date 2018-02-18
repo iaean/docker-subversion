@@ -1,4 +1,5 @@
 FROM alpine:latest
+# FROM alpine:3.6
 
 MAINTAINER Andreas Schulze <asl@iaean.net>
 
@@ -8,6 +9,11 @@ MAINTAINER Andreas Schulze <asl@iaean.net>
 #   https://github.com/dweomer/dockerfiles-saslauthd
 #
 ENV CYRUS_SASL_VERSION=2.1.26
+
+RUN rm -rf /var/cache/apk/* && \
+    rm -rf /tmp/*
+RUN apk update
+
 RUN set -x && \
     mkdir -p /srv/saslauthd.d /tmp/cyrus-sasl /var/run/saslauthd && \
     export BUILD_DEPS="\
@@ -20,7 +26,7 @@ RUN set -x && \
         libtool \
         openldap-dev \
         tar" && \
-    apk add --update ${BUILD_DEPS} cyrus-sasl libldap && \
+    apk add --update ${BUILD_DEPS} cyrus-sasl libldap openldap-clients && \
     curl -fL ftp://ftp.cyrusimap.org/cyrus-sasl/cyrus-sasl-${CYRUS_SASL_VERSION}.tar.gz -o /tmp/cyrus-sasl.tgz && \
     curl -fL http://git.alpinelinux.org/cgit/aports/plain/main/cyrus-sasl/cyrus-sasl-2.1.25-avoid_pic_overwrite.patch?h=3.2-stable -o /tmp/cyrus-sasl-2.1.25-avoid_pic_overwrite.patch && \
     curl -fL http://git.alpinelinux.org/cgit/aports/plain/main/cyrus-sasl/cyrus-sasl-2.1.26-size_t.patch?h=3.2-stable -o /tmp/cyrus-sasl-2.1.26-size_t.patch && \
@@ -97,8 +103,8 @@ RUN svn export file://localhost/data/svn/subversion/websvn/trunk /var/www/html/ 
     # chown -R apache:apache /var/www/localhost/htdocs/websvn/cache && \
     # chmod -R 0700 /var/www/localhost/htdocs/websvn/cache
 
+# COPY svnpasswd /data/svn/.svn.passwd
 COPY htpasswd /data/svn/.htpasswd
-COPY svnpasswd /data/svn/.svn.passwd
 COPY svn.access /data/svn/.svn.access
 
 COPY apache.conf/httpd.conf /etc/apache2/
@@ -117,8 +123,10 @@ COPY websvn.conf /var/www/html/include/config.php
 
 COPY svnserve.conf /etc/subversion/
 COPY svnsasl.conf /etc/sasl2/svn.conf
+COPY ldap.conf /etc/openldap/
 
-RUN chown -R apache:apache .
+RUN echo password | saslpasswd2 -p -f .svn.sasldb -u "Local or LDAP Account" foobar && \
+    chown -R apache:apache .
 
 EXPOSE 80 3690
 VOLUME ["/data/svn"]

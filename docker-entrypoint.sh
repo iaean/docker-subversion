@@ -8,8 +8,6 @@ function directory_empty() {
 
 echo Running: "$@"
 
-if [[ `basename ${1}` == "httpd" ]]; then
-
   BASE=/data/svn
   declare -A repos
   for r in ${SUBVERSION_REPOS} # No spaces allowed...
@@ -76,16 +74,17 @@ EOT
     fi
   fi
 
+  /usr/sbin/saslauthd -m /var/run/saslauthd -a ldap -O /etc/saslauthd.conf -n 3
+  sudo -u apache -g apache /usr/bin/svnserve -d -r ${BASE} --listen-port 3690 --config-file=/etc/subversion/svnserve.conf
+
+if [[ `basename ${1}` == "httpd" ]]; then
   touch /var/log/apache2/error.log
   touch /var/log/apache2/access.log
 
   tail -f /var/log/apache2/error.log &
   tail -f /var/log/apache2/access.log &
 
-  /usr/sbin/saslauthd -m /var/run/saslauthd -a ldap -O /etc/saslauthd.conf -n 3
-  sudo -u apache -g apache /usr/bin/svnserve -d -r ${BASE} --listen-port 3690 --config-file=/etc/subversion/svnserve.conf
   exec "$@" </dev/null 2>&1
-
 fi
 
 exec "$@"
