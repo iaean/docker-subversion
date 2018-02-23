@@ -46,7 +46,17 @@ echo Running: "$@"
   # done
 
   if [[ -n $LDAP_BindDN && -n $LDAP_BindPW ]]; then
+    LDAP_Use_TLS=${LDAP_Use_TLS:-no}
+    LDAP_Use_TLS=${LDAP_Use_TLS,,}
+    if [[ ${LDAP_Use_TLS} != "yes" ]]; then
+      LDAP_Use_TLS=no
+    fi
+
     if [[ -n $APACHE_LDAP_ALIAS && -n $APACHE_LDAP_URL ]]; then
+      if [[ ${LDAP_Use_TLS} == "yes" ]]; then
+        APACHE_LDAP_URL=`echo ${APACHE_LDAP_URL} | sed -e 's/^ldaps/ldap/'`
+        APACHE_LDAP_URL="${APACHE_LDAP_URL} TLS"
+      fi
       cat <<EOT >>/etc/apache2/conf.d/ldap.conf
 <AuthnProviderAlias ldap ${APACHE_LDAP_ALIAS}>
   AuthLDAPURL ${APACHE_LDAP_URL}
@@ -58,6 +68,9 @@ EOT
       sed -i -e "s/AuthBasicProvider file/AuthBasicProvider file ${APACHE_LDAP_ALIAS}/g" /etc/apache2/conf.d/*.conf
     fi
     if [[ -n $SASL_LDAP_SERVER && -n $SASL_LDAP_SEARCHBASE && -n $SASL_LDAP_FILTER ]]; then
+      if [[ ${LDAP_Use_TLS} == "yes" ]]; then
+        SASL_LDAP_SERVER=`echo ${SASL_LDAP_SERVER} | sed -e 's/^ldaps/ldap/'`
+      fi
       cat <<EOT >/etc/saslauthd.conf
 ldap_servers: ${SASL_LDAP_SERVER}
 ldap_bind_dn: ${LDAP_BindDN}
@@ -66,16 +79,25 @@ ldap_search_base: ${SASL_LDAP_SEARCHBASE}
 ldap_scope: sub
 ldap_filter: ${SASL_LDAP_FILTER}
 ldap_use_sasl: no
-ldap_tls_check_peer: no
+ldap_start_tls: ${LDAP_Use_TLS}
 ldap_tls_cacert_file: /etc/ssl/cert.pem
-# ldap_start_tls: no
-# ldap_tls_ciphers: HIGH:MEDIUM:-SSLv3
+ldap_tls_check_peer: no
+# ldap_tls_ciphers: AES256-SHA:AES128-SHA
 EOT
     fi
   fi
 
   /usr/sbin/saslauthd -m /var/run/saslauthd -a ldap -O /etc/saslauthd.conf -n 3
   sudo -u apache -g apache /usr/bin/svnserve -d -r ${BASE} --listen-port 3690 --config-file=/etc/subversion/svnserve.conf
+
+  if [[ -n $SVN_LOCAL_ADMIN_USER && -n $SVN_LOCAL_ADMIN_PASS ]]; then
+    echo "${SVN_LOCAL_ADMIN_PASS}" | saslpasswd2 -p -f /data/svn/.svn.sasldb -u "Local or LDAP Account" "${SVN_LOCAL_ADMIN_USER}"
+    htpasswd -cmb /data/svn/.htpasswd "${SVN_LOCAL_ADMIN_USER}" "${SVN_LOCAL_ADMIN_PASS}"
+  else
+    touch/data/svn/.svn.sasldb
+    touch /data/svn/.htpasswd
+  fi
+  chown -R apache:apache /data/svn/.svn.sasldb /data/svn/.htpasswd
 
 if [[ `basename ${1}` == "httpd" ]]; then
   touch /var/log/apache2/error.log

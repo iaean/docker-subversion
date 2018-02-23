@@ -103,7 +103,7 @@ td {
 	-o-transition:background 300ms ease;
 	transition:background 300ms ease;
 }
-td a{
+td a {
 	display: block;
 }
 tr.parent a[href^="/"] {
