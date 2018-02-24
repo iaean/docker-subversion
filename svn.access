@@ -1,5 +1,6 @@
 [/]
 * = r
+# %%LOCAL_ADMIN%% = rw
 
 [test:/]
 * = rw

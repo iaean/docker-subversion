@@ -18,8 +18,9 @@ Use docker to run the container as you normaly would:
 `docker exec -u apache -it subversion /bin/sh`
 
 ### Setting local user paswords
-docker exec -u apache -it subversion saslpasswd2 -f /data/svn/.svn.sasldb -u "Local or LDAP Account" foobar
-docker exec -u apache -it subversion htpasswd -cmb /data/svn/.htpasswd foobar password
+`docker exec -u apache -it subversion sasldblistusers2 -f .svn.sasldb`
+`docker exec -u apache -it subversion saslpasswd2 -f .svn.sasldb -u "Local or LDAP Account" foobar`
+`docker exec -u apache -it subversion htpasswd -mb .htpasswd foobar password`
 
 ### Autoconfiguration via Environment
 SUBVERSION_REPOS=legacy/code legacy/conf dev/apps prod/apps
@@ -42,3 +43,5 @@ SASL_LDAP_SEARCHBASE=cn=users,dc=example,dc=com
 SASL_LDAP_FILTER=(uid=%U)
 
 ### Towards SSL/TLS and Alpine
+
+### TODO
