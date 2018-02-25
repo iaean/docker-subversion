@@ -8,7 +8,16 @@ function directory_empty() {
 
 echo Running: "$@"
 
-BASE=/data/svn
+if [[ ! -d ${SVN_BASE}/sandbox ]]; then
+  mkdir -p ${SVN_BASE}/sandbox
+  ln -s ../.svn.access ${SVN_BASE}/sandbox/.svn.access
+  chown -R apache:apache ${SVN_BASE}/sandbox
+fi
+if [[ ! -d ${SVN_BASE}/sandbox/test ]]; then
+  svnadmin create ${SVN_BASE}/sandbox/test
+  chown -R apache:apache ${SVN_BASE}/sandbox/test
+fi
+
 declare -A repos
 for r in ${SUBVERSION_REPOS} # No spaces allowed...
 do
@@ -19,15 +28,15 @@ do
     # dynamicly making variable name
     current_desc=DESCRIPTION_${DIR}
     current_desc=${!current_desc:-'Unlabeled repository group'}
-    if [[ ! -d ${BASE}/${DIR}/${REP} ]]; then
-      if [[ ! -d ${BASE}/${DIR} ]]; then
-        mkdir -p ${BASE}/${DIR}
-        ln -s ../.svn.access ${BASE}/${DIR}/.svn.access
-        chown -R apache:apache ${BASE}/${DIR}
+    if [[ ! -d ${SVN_BASE}/${DIR}/${REP} ]]; then
+      if [[ ! -d ${SVN_BASE}/${DIR} ]]; then
+        mkdir -p ${SVN_BASE}/${DIR}
+        ln -s ../.svn.access ${SVN_BASE}/${DIR}/.svn.access
+        chown -R apache:apache ${SVN_BASE}/${DIR}
       fi
-      svnadmin create ${BASE}/${DIR}/${REP}
-      chown -R apache:apache ${BASE}/${DIR}/${REP}
-      echo "Repository ${BASE}/${DIR}/${REP} inside '${current_desc}' group created..."
+      svnadmin create ${SVN_BASE}/${DIR}/${REP}
+      chown -R apache:apache ${SVN_BASE}/${DIR}/${REP}
+      echo "Repository ${SVN_BASE}/${DIR}/${REP} inside group '${current_desc}' created..."
     fi
   else
     echo "Skipping invalid: ${r}"
@@ -45,8 +54,8 @@ for key in ${!repos[*]}; do
   # gives another flavor in WebSVN for undefined parent directories... 
   # current_desc=${!current_desc:-'Unlabeled repository group'}
 
-  apache_snippet="<Location \"/svn/${key}\">\n  DAV svn\n  DavMinTimeout 300\n  SVNParentPath ${BASE}/${key}\n  SVNListParentPath on\n  SVNIndexXSLT /repos/.svnindex.xsl\n  AuthzSVNAccessFile ${BASE}/${key}/.svn.access\n</Location>\n"
-  sed -i -e "s#// additional paths...#\$config->parentPath('${BASE}/${key}', '${!current_desc}');\n&#g" /var/www/html/include/config.php
+  apache_snippet="<Location \"/svn/${key}\">\n  DAV svn\n  DavMinTimeout 300\n  SVNParentPath ${SVN_BASE}/${key}\n  SVNListParentPath on\n  SVNIndexXSLT /repos/.svnindex.xsl\n  AuthzSVNAccessFile ${SVN_BASE}/${key}/.svn.access\n</Location>\n"
+  sed -i -e "s#// additional paths...#\$config->parentPath('${SVN_BASE}/${key}', '${!current_desc}');\n&#g" /var/www/html/include/config.php
   sed -i -e "s#^\# additional repo groups...#${apache_snippet}&#g" /etc/apache2/conf.d/svn.conf
 done
 
@@ -93,7 +102,10 @@ EOT
 fi
 
 /usr/sbin/saslauthd -m /var/run/saslauthd -a ldap -O /etc/saslauthd.conf -n 3
-sudo -u apache -g apache /usr/bin/svnserve -d -r ${BASE} --listen-port 3690 --config-file=/etc/subversion/svnserve.conf
+sudo -u apache -g apache /usr/bin/svnserve -d -r ${SVN_BASE} --listen-port 3690 --config-file=/etc/subversion/svnserve.conf
+
+mv -n /data/dist/.*.html /data/dist/.s* /data/svn/
+chown apache:apache /data/svn/.s* /data/svn/.*.html
 
 if [[ -n $SVN_LOCAL_ADMIN_USER && -n $SVN_LOCAL_ADMIN_PASS ]]; then
   # Create or update USER and .svn.sasldb
@@ -102,7 +114,7 @@ if [[ -n $SVN_LOCAL_ADMIN_USER && -n $SVN_LOCAL_ADMIN_PASS ]]; then
   if [[ ! -f /data/svn/.htpasswd ]]; then
     touch /data/svn/.htpasswd
   fi
-  htpasswd -mb /data/svn/.htpasswd "${SVN_LOCAL_ADMIN_USER}" "${SVN_LOCAL_ADMIN_PASS}"
+  htpasswd -mb /data/svn/.htpasswd "${SVN_LOCAL_ADMIN_USER}" "${SVN_LOCAL_ADMIN_PASS}" >/dev/null 2>&1
   sed -i -e "s/^# %%LOCAL_ADMIN%%/${SVN_LOCAL_ADMIN_USER}/" /data/svn/.svn.access
   chown -R apache:apache /data/svn/.svn.sasldb /data/svn/.htpasswd /data/svn/.svn.access
 fi
