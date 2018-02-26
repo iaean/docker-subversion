@@ -8,6 +8,10 @@ function directory_empty() {
 
 echo Running: "$@"
 
+###
+### Repository bootstrapping...
+###
+
 if [[ ! -d ${SVN_BASE}/sandbox ]]; then
   mkdir -p ${SVN_BASE}/sandbox
   ln -s ../.svn.access ${SVN_BASE}/sandbox/.svn.access
@@ -59,13 +63,24 @@ for key in ${!repos[*]}; do
   sed -i -e "s#^\# additional repo groups...#${apache_snippet}&#g" /etc/apache2/conf.d/svn.conf
 done
 
+###
+### LDAP bootstrapping...
+###
+
 if [[ -n $LDAP_BindDN && -n $LDAP_BindPW ]]; then
+  # Secure LDAP stuff
   LDAP_Use_TLS=${LDAP_Use_TLS:-no}
   LDAP_Use_TLS=${LDAP_Use_TLS,,}
   if [[ ${LDAP_Use_TLS} != "yes" ]]; then
     LDAP_Use_TLS=no
   fi
+  LDAP_TLS_VerifyCert=${LDAP_TLS_VerifyCert:-allow}
+  echo "tls_reqcert ${LDAP_TLS_VerifyCert}" >>/etc/openldap/ldap.conf
+  if [[ -n $LDAP_TLS_Ciphers ]]; then
+    echo "tls_cipher_suite ${LDAP_TLS_Ciphers}" >>/etc/openldap/ldap.conf
+  fi
 
+  # Apache LDAP
   if [[ -n $APACHE_LDAP_ALIAS && -n $APACHE_LDAP_URL ]]; then
     if [[ ${LDAP_Use_TLS} == "yes" ]]; then
       APACHE_LDAP_URL=`echo ${APACHE_LDAP_URL} | sed -e 's/^ldaps/ldap/'`
@@ -81,6 +96,8 @@ if [[ -n $LDAP_BindDN && -n $LDAP_BindPW ]]; then
 EOT
     sed -i -e "s/AuthBasicProvider file/AuthBasicProvider file ${APACHE_LDAP_ALIAS}/g" /etc/apache2/conf.d/*.conf
   fi
+
+  # SASL LDAP
   if [[ -n $SASL_LDAP_SERVER && -n $SASL_LDAP_SEARCHBASE && -n $SASL_LDAP_FILTER ]]; then
     if [[ ${LDAP_Use_TLS} == "yes" ]]; then
       SASL_LDAP_SERVER=`echo ${SASL_LDAP_SERVER} | sed -e 's/^ldaps/ldap/'`
@@ -94,32 +111,54 @@ ldap_scope: sub
 ldap_filter: ${SASL_LDAP_FILTER}
 ldap_use_sasl: no
 ldap_start_tls: ${LDAP_Use_TLS}
-ldap_tls_cacert_file: /etc/ssl/cert.pem
-ldap_tls_check_peer: no
-# ldap_tls_ciphers: AES256-SHA:AES128-SHA
 EOT
   fi
 fi
 
-/usr/sbin/saslauthd -m /var/run/saslauthd -a ldap -O /etc/saslauthd.conf -n 3
-sudo -u apache -g apache /usr/bin/svnserve -d -r ${SVN_BASE} --listen-port 3690 --config-file=/etc/subversion/svnserve.conf
+###
+### Empty bind mount volume bootstrapping...
+###
 
-mv -n /data/dist/.*.html /data/dist/.s* /data/svn/
-chown apache:apache /data/svn/.s* /data/svn/.*.html
+find /data/dist -type f -name '.*' -exec mv -n {} /data/svn \;
 
+###
+### Local SASL/htpasswd bootstrapping...
+###
+
+# Create .htpasswd and .svn.sasldb
+if [[ ! -f /data/svn/.htpasswd ]]; then
+  touch /data/svn/.htpasswd
+fi
+if [[ ! -f /data/svn/.svn.sasldb ]]; then
+  echo "bootstrap" | \
+  saslpasswd2 -p -f /data/svn/.svn.sasldb bootstrap
+  saslpasswd2 -d -f /data/svn/.svn.sasldb bootstrap
+fi
+# Create or update USER
 if [[ -n $SVN_LOCAL_ADMIN_USER && -n $SVN_LOCAL_ADMIN_PASS ]]; then
-  # Create or update USER and .svn.sasldb
-  echo "${SVN_LOCAL_ADMIN_PASS}" | saslpasswd2 -p -f /data/svn/.svn.sasldb -u "Local or LDAP Account" "${SVN_LOCAL_ADMIN_USER}"
-  # Create or update USER and .htpasswd
-  if [[ ! -f /data/svn/.htpasswd ]]; then
-    touch /data/svn/.htpasswd
-  fi
-  htpasswd -mb /data/svn/.htpasswd "${SVN_LOCAL_ADMIN_USER}" "${SVN_LOCAL_ADMIN_PASS}" >/dev/null 2>&1
+  echo "${SVN_LOCAL_ADMIN_PASS}" | saslpasswd2 \
+    -p -f /data/svn/.svn.sasldb \
+    -u "Local or LDAP Account" "${SVN_LOCAL_ADMIN_USER}"
+  htpasswd -mb /data/svn/.htpasswd "${SVN_LOCAL_ADMIN_USER}" \
+    "${SVN_LOCAL_ADMIN_PASS}" >/dev/null 2>&1
   sed -i -e "s/^# %%LOCAL_ADMIN%%/${SVN_LOCAL_ADMIN_USER}/" /data/svn/.svn.access
-  chown -R apache:apache /data/svn/.svn.sasldb /data/svn/.htpasswd /data/svn/.svn.access
 fi
 
-if [[ `basename ${1}` == "httpd" ]]; then
+find /data/svn -type f -name '.*' -exec chown apache:apache {} \;
+
+###
+### Start SASL/SVN services...
+###
+
+/usr/sbin/saslauthd -m /var/run/saslauthd -a ldap -O /etc/saslauthd.conf -n 3
+sudo -u apache -g apache /usr/bin/svnserve -d -r ${SVN_BASE} \
+  --listen-port 3690 --config-file=/etc/subversion/svnserve.conf
+
+###
+### Start apache...
+###
+
+if [[ `basename ${1}` == "httpd" ]]; then # prod
   touch /var/log/apache2/error.log
   touch /var/log/apache2/subversion.log
   touch /var/log/apache2/access.log
@@ -129,9 +168,10 @@ if [[ `basename ${1}` == "httpd" ]]; then
   tail -f /var/log/apache2/access.log &
 
   exec "$@" </dev/null >/dev/null 2>&1
-else
+else # dev
   httpd -k start
 fi
 
+# fallthrough...
 exec "$@"
 

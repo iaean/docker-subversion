@@ -34,6 +34,9 @@ SVN_LOCAL_ADMIN_PASS=password
 
 LDAP_BindDN=uid=root,cn=users,dc=example,dc=com
 LDAP_BindPW=PASSWORD
+LDAP_Use_TLS=no
+LDAP_TLS_Ciphers=
+LDAP_TLS_VerifyCert=
 
 APACHE_LDAP_ALIAS=synology
 APACHE_LDAP_URL=ldaps://synology/cn=users,dc=example,dc=com?uid?sub

@@ -88,15 +88,16 @@ COPY websvn.conf /var/www/html/include/config.php
 RUN mkdir -p /data/dist && \
     svn cat https://svn.apache.org/repos/asf/subversion/trunk/tools/xslt/svnindex.css > /data/dist/.svnindex.css && \
     svn cat https://svn.apache.org/repos/asf/subversion/trunk/tools/xslt/svnindex.xsl > /data/dist/.svnindex.xsl && \
-    sed -i 's/\/svnindex.css/\/repos\/.svnindex.css/' /data/dist/.svnindex.xsl && \
-    mkdir -p $SVN_BASE && \
-    chown -R apache:apache $SVN_BASE && \
-    apk add --no-cache joe openldap-clients
+    sed -i 's/\/svnindex.css/\/repos\/.svnindex.css/' /data/dist/.svnindex.xsl
 
 COPY apache.conf/header.html /data/dist/.header.html
 COPY apache.conf/footer.html /data/dist/.footer.html
 COPY apache.conf/style.css /data/dist/.style.css
 COPY svn.access /data/dist/.svn.access
+
+RUN mkdir -p $SVN_BASE && \
+    chown -R apache:apache $SVN_BASE && \
+    apk add --no-cache joe openldap-clients
 
 COPY svnserve.conf /etc/subversion/
 COPY svnsasl.conf /etc/sasl2/svn.conf
