@@ -92,3 +92,15 @@ fancy, windows bind, apache sasl
 
 [1]: https://bugs.alpinelinux.org/issues/8199 "LibreSSL Bug"
 [2]: https://github.com/libressl-portable/openbsd/issues/79 "LibreSSL Bug"
+
+[3]: https://docs.docker.com/docker-for-windows/troubleshoot/#permissions-errors-on-data-directories-for-shared-volumes
+
+[4]: http://httpd.apache.org/docs/2.4/mod/mod_autoindex.html
+[5]: https://oupala.github.io/apaxy/
+
+[6]: http://svnbook.red-bean.com/de/1.7/svn.serverconfig.svnserve.html
+[7]: http://svnbook.red-bean.com/de/1.7/svn.ref.svnserve.html
+[8]: http://svnbook.red-bean.com/de/1.7/svn.serverconfig.httpd.html
+[9]: http://svnbook.red-bean.com/de/1.7/svn.ref.mod_dav_svn.conf.html
+[10]: http://svnbook.red-bean.com/de/1.7/svn.ref.mod_authz_svn.conf.html
+[11]: http://svnbook.red-bean.com/de/1.7/svn.serverconfig.pathbasedauthz.html
