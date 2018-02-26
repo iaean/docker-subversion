@@ -47,4 +47,44 @@ SASL_LDAP_FILTER=(uid=%U)
 
 ### Towards SSL/TLS and Alpine
 
+
+```
+# Uhmpf... BROKEN!!
+echo | openssl s_client -connect sec.srv.tld:636 -tls1_2 | \
+  egrep 'Cipher|Protocol'
+140182729145292:error:140040E5:SSL routines:CONNECT_CR_SRVR_HELLO:ssl handshake failure:ssl_pkt.c:585:
+New, (NONE), Cipher is (NONE)
+    Protocol  : TLSv1.2
+    Cipher    : 0000
+
+# Works. But negotiates to AES128-SHA only.
+echo | openssl s_client -connect sec.srv.tld:636 -tls1_2 \
+  -groups secp256k1:secp224r1 2>/dev/null | egrep 'Cipher|Protocol'
+New, TLSv1/SSLv3, Cipher is AES128-SHA
+    Protocol  : TLSv1.2
+    Cipher    : AES128-SHA
+
+# Works. But needs forced cipher.
+echo | openssl s_client -connect sec.srv.tld:636 -tls1_2 \
+  -cipher AES128-SHA 2>/dev/null | egrep 'Cipher|Protocol'
+New, TLSv1/SSLv3, Cipher is AES128-SHA
+    Protocol  : TLSv1.2
+    Cipher    : AES128-SHA
+
+# TLSv1.1 works fine.
+echo | openssl s_client -connect sec.srv.tld:636 -tls1_1 \
+  2>/dev/null | egrep 'Cipher|Protocol'
+New, TLSv1/SSLv3, Cipher is ECDHE-RSA-AES128-SHA
+    Protocol  : TLSv1.1
+    Cipher    : ECDHE-RSA-AES128-SHA
+```
+
 ### TODO
+
+fancy, windows bind, apache sasl
+
+
+
+
+[]: https://bugs.alpinelinux.org/issues/8199 "LibreSSL Bug"
+[]: https://github.com/libressl-portable/openbsd/issues/79 "LibreSSL Bug"

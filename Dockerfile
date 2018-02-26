@@ -96,8 +96,8 @@ COPY apache.conf/style.css /data/dist/.style.css
 COPY svn.access /data/dist/.svn.access
 
 RUN mkdir -p $SVN_BASE && \
-    chown -R apache:apache $SVN_BASE && \
-    apk add --no-cache joe openldap-clients
+    chown -R apache:apache $SVN_BASE
+    # apk add --no-cache joe openldap-clients libressl
 
 COPY svnserve.conf /etc/subversion/
 COPY svnsasl.conf /etc/sasl2/svn.conf
