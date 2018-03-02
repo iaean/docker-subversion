@@ -1,58 +1,105 @@
 # docker-subversion
-Docker container for Subversion with WebSVN
+Docker container for [1][Subversion] with [2][WebSVN].
+
+[1]: http://subversion.apache.org/
+[2]: https://websvnphp.github.io/
 
 ## Features
-* Provide access via `svn://` and `http://`
-* ...
+* Provides coexistent access via [3][`svn://`] and [4][`http[s]://`]
+* Ultra small [5][Alpine Linux] based image
+* LDAP and/or local password database based authentication via SASL
+* [6][Path based authorization]
+* Complete autoconfiguration via environment
+* Repository grouping via SVN parent path
+* Fancy SVN DAV [7][repository group browsing] inspired by [8][Apaxy]
 
-### Building the docker image
-Use docker to build the image as you normaly would:
+[3]: http://svnbook.red-bean.com/de/1.7/svn.serverconfig.svnserve.html
+[4]: http://svnbook.red-bean.com/de/1.7/svn.serverconfig.httpd.html
+[5]: https://alpinelinux.org/
+[6]: http://svnbook.red-bean.com/de/1.7/svn.serverconfig.pathbasedauthz.html
+[7]: http://httpd.apache.org/docs/2.4/mod/mod_autoindex.html
+[8]: https://oupala.github.io/apaxy/
 
-`docker build --tag=subversion ./`
+## Installation
+* Get it from docker hub
+* or build the image as you normally would: `docker build --tag=subversion ./`
+* Setting your environment
+* Yee-haw...
+
+## Configuration
+
+### Persistent storage
+
+### Repository groups
+
+### Autoconfiguration via environment
+| Variable | Scope | Default | Example |
+| --- | --- | --- | --- |
+| SUBVERSION_REPOS | recommended | sandbox/test | **legacy**/code **legacy**/conf **dev**/apps **prod**/apps |
+| DESCRIPTION_**legacy** | recommended | | Legacy stuff |
+| DESCRIPTION_**prod** | recommended | | Production app code & config |
+| DESCRIPTION_**dev** | recommended | | Development app code & config |
+| SVN_LOCAL_ADMIN_USER | recommended | | admin |
+| SVN_LOCAL_ADMIN_PASS | recommended | | password |
+| LDAP_BindDN | optional \| LDAP mandatory | | uid=root,cn=users,dc=example,dc=com |
+| LDAP_BindPW | optional \| LDAP mandatory | | password |
+| LDAP_Use_TLS |optional | no | yes \| no |
+| LDAP_TLS_Ciphers | optional | | |
+| LDAP_TLS_VerifyCert | optional | allow | never \| allow \| try \| demand |
+| APACHE_LDAP_ALIAS | optional \| LDAP mandatory | | synology |
+| APACHE_LDAP_URL | optional \| LDAP mandatory | | ldaps://synology/cn=users,dc=example,dc=com?uid?sub |
+| SASL_LDAP_SERVER | optional \| LDAP mandatory | | ldaps://synology |
+| SASL_LDAP_SEARCHBASE | optional \| LDAP mandatory | | cn=users,dc=example,dc=com |
+| SASL_LDAP_FILTER | optional \| LDAP mandatory | | (uid=%U) |
+
+## Running
 
 ### Running the docker image
-Use docker to run the container as you normaly would:
+Use docker to run the container as you normally would.
 
+Production:
 `docker run -p 80:80 -p 3690:3690 --env-file env --rm --name subversion subversion`
 
+Devolopment:
 `docker run -it -p 80:80 -p 3690:3690 --env-file env --rm --name subversion subversion /bin/sh`
 
 `docker exec -it subversion /bin/sh`
 
 `docker exec -u apache -it subversion /bin/sh`
 
-### Setting local user paswords
+### Setting local user passwords
+We are using Apache htpasswd for `httpd` local auth and SASL for `svnserve` local auth. Unfortunately we had to maintain both auth sources until now.
+
 `docker exec -u apache -it subversion sasldblistusers2 -f .svn.sasldb`
 
 `docker exec -u apache -it subversion saslpasswd2 -f .svn.sasldb -u "Local or LDAP Account" foobar`
 
 `docker exec -u apache -it subversion htpasswd -mb .htpasswd foobar password`
 
-### Autoconfiguration via Environment
+## TODO
+* Apache publishes XML for repository indexing. This is transformed to HTML via [9][XSLT]. Make the XSLT looks smooth like the group listing HTML to avoid the visual break at SVN DAV browsing.
+* **Bind** mount volumes under Docker for Windows should not be used actually, because they are [10][problematic] due to `chmod` and `chown`. Files are created as user `root` and this cannot be changed. Just there is no workaround for this behaviour. Maybe an configurable solution could be to run `httpd` and `svnserve` as `root`, if this becomes an issue.
+* It's annoying to maintain two local password databases actually. The solution is to enable Apache to use SASL too. Because there is no SASL auth feature in the official vanilla distribution, we could try to make [11][mod-authn-sasl] running.
 
-| Variable | Example |
-| --- | --- |
-| SUBVERSION_REPOS | legacy/code legacy/conf dev/apps prod/apps |
-| DESCRIPTION_legacy | Legacy stuff |
-| DESCRIPTION_prod | Production app code & config |
-| DESCRIPTION_dev | Development app code & config |
-| SVN_LOCAL_ADMIN_USER | admin |
-| SVN_LOCAL_ADMIN_PASS | password |
-| LDAP_BindDN | uid=root,cn=users,dc=example,dc=com |
-| LDAP_BindPW | PASSWORD |
-| LDAP_Use_TLS | no |
-| LDAP_TLS_Ciphers | |
-| LDAP_TLS_VerifyCert | |
-| APACHE_LDAP_ALIAS | synology |
-| APACHE_LDAP_URL | ldaps://synology/cn=users,dc=example,dc=com?uid?sub |
-| SASL_LDAP_SERVER | ldaps://synology |
-| SASL_LDAP_SEARCHBASE | cn=users,dc=example,dc=com |
-| SASL_LDAP_FILTER | (uid=%U) |
+[9]: https://svn.apache.org/repos/asf/subversion/trunk/tools/xslt/svnindex.xsl
+[10]: https://docs.docker.com/docker-for-windows/troubleshoot/#permissions-errors-on-data-directories-for-shared-volumes
+[11]: https://sourceforge.net/projects/mod-authn-sasl
 
-### Towards SSL/TLS and Alpine
+## Towards SSL/TLS and Alpine
+Alpine Linux is linking almost all packages against [12][LibreSSL]. LibreSSL should be compatible to [13][OpenSSL]. But it ***isn't***. I fought against a bug in LibreSSL a couple of days. There are servers with certificates from well-known CA's and OpenSSL works like a charm. But LibreSSL ***doesn't***. This is because of a bug in LibreSSL with TLSv1.2 and elliptic curve handshaking. [^1][^2]
 
+In my opinion, this is a **major drawback** for Alpine Linux, because it can **break** SSL/TLS security for **any package**. In our case OpenLDAP via SASL and Apache. Beside [14][nginx] I don't know about an application that support feeding *Elliptic curve groups* to their TLS stack. The workaround for our case was a forced downgrade to AES128-SHA cipher. And feeding ciphers is supported by OpenLDAP. But feeding *Elliptic curve groups* isn't. It could have been worse.
 
-```
+If you run into this issue, try to use `LDAP_TLS_Ciphers` and hoping your server supports some working fallback.
+
+[^1]: https://bugs.alpinelinux.org/issues/8199 "LibreSSL Bug"
+[^2]: https://github.com/libressl-portable/openbsd/issues/79 "LibreSSL Bug"
+
+[12]: http://www.libressl.org/
+[13]: https://www.openssl.org/
+[14]: https://nginx.org/
+
+```bash
 # Uhmpf... BROKEN!!
 #
 echo | openssl s_client -connect sec.srv.tld:636 -tls1_2 | egrep 'Cipher|Protocol'
@@ -83,24 +130,8 @@ New, TLSv1/SSLv3, Cipher is ECDHE-RSA-AES128-SHA
     Cipher    : ECDHE-RSA-AES128-SHA
 ```
 
-### TODO
+> Written with [StackEdit](https://stackedit.iaean.net/).
 
-fancy, windows bind, apache sasl
-
-
-
-
-[1]: https://bugs.alpinelinux.org/issues/8199 "LibreSSL Bug"
-[2]: https://github.com/libressl-portable/openbsd/issues/79 "LibreSSL Bug"
-
-[3]: https://docs.docker.com/docker-for-windows/troubleshoot/#permissions-errors-on-data-directories-for-shared-volumes
-
-[4]: http://httpd.apache.org/docs/2.4/mod/mod_autoindex.html
-[5]: https://oupala.github.io/apaxy/
-
-[6]: http://svnbook.red-bean.com/de/1.7/svn.serverconfig.svnserve.html
-[7]: http://svnbook.red-bean.com/de/1.7/svn.ref.svnserve.html
-[8]: http://svnbook.red-bean.com/de/1.7/svn.serverconfig.httpd.html
-[9]: http://svnbook.red-bean.com/de/1.7/svn.ref.mod_dav_svn.conf.html
-[10]: http://svnbook.red-bean.com/de/1.7/svn.ref.mod_authz_svn.conf.html
-[11]: http://svnbook.red-bean.com/de/1.7/svn.serverconfig.pathbasedauthz.html
+[15]: http://svnbook.red-bean.com/de/1.7/svn.ref.svnserve.html
+[16]: http://svnbook.red-bean.com/de/1.7/svn.ref.mod_dav_svn.conf.html
+[17]: http://svnbook.red-bean.com/de/1.7/svn.ref.mod_authz_svn.conf.html

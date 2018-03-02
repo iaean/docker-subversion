@@ -8,7 +8,6 @@ MAINTAINER Andreas Schulze <asl@iaean.net>
 #   https://github.com/dweomer/dockerfiles-saslauthd
 #
 ENV CYRUS_SASL_VERSION=2.1.26
-
 RUN set -x && \
     mkdir -p /srv/saslauthd.d /tmp/cyrus-sasl /var/run/saslauthd && \
     export BUILD_DEPS="\
@@ -78,7 +77,8 @@ COPY apache.conf/icons/* /var/www/localhost/icons/
 
 # Install WebSVN
 #
-RUN svn --username guest --password "" export http://websvn.tigris.org/svn/websvn/trunk /var/www/html/ && \
+ENV WEBSVN_VERSION=2.3.3
+RUN svn --username guest --password "" export http://websvn.tigris.org/svn/websvn/tags/${WEBSVN_VERSION} /var/www/html/ && \
     chown -R apache:apache /var/www/html/cache && \
     chmod -R 0700 /var/www/html/cache
 
