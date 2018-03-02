@@ -88,7 +88,7 @@ We are using Apache htpasswd for `httpd` local auth and SASL for `svnserve` loca
 [11]: https://sourceforge.net/projects/mod-authn-sasl
 
 ## Towards SSL/TLS and Alpine
-Alpine Linux is linking almost all packages against [LibreSSL][12]. LibreSSL should be compatible to [OpenSSL][13]. But it ***isn't***. I fought against a bug in LibreSSL a couple of days. There are servers with certificates from well-known CA's and OpenSSL works like a charm. But LibreSSL ***doesn't***. This is because of a bug in LibreSSL with TLSv1.2 and elliptic curve handshaking. <sup id="a1">[(1)](#f1)</sup><sup id="a1">[(2)](#f2)</sup>
+Alpine Linux is linking almost all packages against [LibreSSL][12]. LibreSSL should be compatible to [OpenSSL][13]. But it ***isn't***. I fought against a bug in LibreSSL a couple of days. There are servers with certificates from well-known CA's and OpenSSL works like a charm. But LibreSSL ***doesn't***. This is because of a bug in LibreSSL with TLSv1.2 and elliptic curve handshaking. <sup id="a1">[1](#f1)</sup><sup id="a2">[2](#f2)</sup>
 
 In my opinion, this is a **major drawback** for Alpine Linux, because it can **break** SSL/TLS security for **any package**. In our case OpenLDAP via SASL and Apache. Beside [nginx][14] I don't know about an application that support feeding *Elliptic curve groups* to their TLS stack. The workaround for our case was a forced downgrade to AES128-SHA cipher. And feeding ciphers is supported by OpenLDAP. But feeding *Elliptic curve groups* isn't. It could have been worse.
 
