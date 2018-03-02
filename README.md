@@ -80,8 +80,8 @@ We are using Apache htpasswd for `httpd` local auth and SASL for `svnserve` loca
 
 ## TODO
 * Apache publishes XML for repository indexing. This is transformed to HTML via [XSLT][9]. Make the XSLT looks smooth like the group listing HTML to avoid the visual break at SVN DAV browsing.
-* **Bind** mount volumes under Docker for Windows should not be used actually, because they are [problematic][10] due to `chmod` and `chown`. Files are created as user `root` and this cannot be changed. Just there is no workaround for this behaviour. Maybe an configurable solution could be to run `httpd` and `svnserve` as `root`, if this becomes an issue.
-* It's annoying to maintain two local password databases actually. The solution is to enable Apache to use SASL too. Because there is no SASL auth feature in the official vanilla distribution, we could try to make [mod-authn-sasl][11] running.
+* **Bind** mount volumes under Docker for Windows should not be used actually, because they are [problematic][10] due to `chmod` and `chown`. Files are created as user `root` and this cannot be changed. Just, there is no workaround for this behaviour. Maybe a configurable solution could be to run `httpd` and `svnserve` as `root`, if this becomes an issue.
+* It's annoying to maintain two local password databases actually. The solution is to enable SASL for Apache. Because there is no SASL auth feature in the official vanilla distribution, we could try to make [mod-authn-sasl][11] running.
 
 [9]: https://svn.apache.org/repos/asf/subversion/trunk/tools/xslt/svnindex.xsl
 [10]: https://docs.docker.com/docker-for-windows/troubleshoot/#permissions-errors-on-data-directories-for-shared-volumes
