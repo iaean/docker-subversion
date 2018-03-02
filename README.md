@@ -1,17 +1,17 @@
 # docker-subversion
-Docker container for [1][Subversion] with [2][WebSVN].
+Docker container for [Subversion][1] with [WebSVN][2].
 
 [1]: http://subversion.apache.org/
 [2]: https://websvnphp.github.io/
 
 ## Features
-* Provides coexistent access via [3][`svn://`] and [4][`http[s]://`]
-* Ultra small [5][Alpine Linux] based image
+* Provides coexistent access via [`svn://`][3] and [`http[s]://`][4]
+* Ultra small [Alpine Linux][5] based image
 * LDAP and/or local password database based authentication via SASL
-* [6][Path based authorization]
+* [Path based authorization][6]
 * Complete autoconfiguration via environment
 * Repository grouping via SVN parent path
-* Fancy SVN DAV [7][repository group browsing] inspired by [8][Apaxy]
+* Fancy SVN DAV [repository group browsing][7] inspired by [Apaxy][8]
 
 [3]: http://svnbook.red-bean.com/de/1.7/svn.serverconfig.svnserve.html
 [4]: http://svnbook.red-bean.com/de/1.7/svn.serverconfig.httpd.html
