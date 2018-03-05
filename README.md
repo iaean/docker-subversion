@@ -1,17 +1,17 @@
 # docker-subversion
-Docker container for [1][Subversion] with [2][WebSVN].
+Docker container for [Subversion][1] with [WebSVN][2].
 
 [1]: http://subversion.apache.org/
 [2]: https://websvnphp.github.io/
 
 ## Features
-* Provides coexistent access via [3][`svn://`] and [4][`http[s]://`]
-* Ultra small [5][Alpine Linux] based image
+* Provides coexistent access via [`svn://`][3] and [`http[s]://`][4]
+* Ultra small [Alpine Linux][5] based image
 * LDAP and/or local password database based authentication via SASL
-* [6][Path based authorization]
+* [Path based authorization][6]
 * Complete autoconfiguration via environment
 * Repository grouping via SVN parent path
-* Fancy SVN DAV [7][repository group browsing] inspired by [8][Apaxy]
+* Fancy SVN DAV [repository group browsing][7] inspired by [Apaxy][8]
 
 [3]: http://svnbook.red-bean.com/1.7/svn.serverconfig.svnserve.html
 [4]: http://svnbook.red-bean.com/1.7/svn.serverconfig.httpd.html
@@ -38,7 +38,6 @@ The following three files under `/data/svn` need special attention, too: `.htpas
 
 ### Repository groups
 Repositories are grouped and managed within so-called *repository groups* or *SVN parent paths*. In fact that are simple directories inside `/data/svn` within the proper repositories are residing. You can provide a description for these directories which is used by WebSVN. You specify all repositories via `SUBVERSION_REPOS`. A repository is described by the SVN parent path and the repo name separated by a slash. Specify several repos separated by semicolons. They are created, if they does not exist. The environment variable for the description is build by prefixing the repository group name with `DESCRIPTION_`. See the examples below.
-
 
 ### Autoconfiguration via environment
 | Variable | Scope | Default | Example |
@@ -67,9 +66,11 @@ Beside `svn://` `http://`is exposed only. To provide extra security and handle y
 Use docker to run the container as you normally would.
 
 Production:
+
 `docker run -p 80:80 -p 3690:3690 --env-file env --rm --name subversion subversion`
 
 Devolopment:
+
 `docker run -it -p 80:80 -p 3690:3690 --env-file env --rm --name subversion subversion /bin/sh`
 
 `docker exec -it subversion /bin/sh`
@@ -146,3 +147,7 @@ New, TLSv1/SSLv3, Cipher is ECDHE-RSA-AES128-SHA
 [16]: http://svnbook.red-bean.com/1.7/svn.ref.svnserve.html
 [17]: http://svnbook.red-bean.com/1.7/svn.ref.mod_dav_svn.conf.html
 [18]: http://svnbook.red-bean.com/1.7/svn.ref.mod_authz_svn.conf.html
+
+<hr size="1"/>
+<a name="f1">1)</a> https://bugs.alpinelinux.org/issues/8199 [↩](#a1)   
+<a name="f2">2)</a> https://github.com/libressl-portable/openbsd/issues/79 [↩](#a2)
