@@ -29,15 +29,16 @@ Docker container for [Subversion][1] with [WebSVN][2].
 ## Configuration
 
 ### Persistent storage
-Repositories are stored inside *repository groups* or *SVN parent paths* under `/data/svn`. This directory is published. To enable persistence, run your docker container via:
+Repositories are stored inside *"repository groups"* or *"SVN parent paths"* under `/data/svn`. This directory is published. To enable persistence, run your docker container via:
 
 * named volume: `-v svn_repos:/data/svn`
 * bind mount: `-v /path/to/svn_repos:/data/svn`
 
-The following three files under `/data/svn` need special attention, too: `.htpasswd`, `.svn.sasldb` and `.svn.access`. This could become important, if you want to backup your environment. Backup your repositories as usual, but keep a copy of this files when indicated, because your authentication and authorization configuration is stored here.
+The following three files under `/data/svn` needs special attention, too: `.htpasswd`, `.svn.sasldb` and `.svn.access`. This could become important, if you want to backup your environment. Backup your repositories as usual, but keep a copy of this files when indicated, because your authentication and authorization configuration is stored here.
 
 ### Repository groups
-Repositories are grouped and managed within so-called *repository groups* or *SVN parent paths*. In fact that are simple directories inside `/data/svn` within the proper repositories are residing. You can provide a description for these directories which is used by WebSVN. You specify all repositories via `SUBVERSION_REPOS`. A repository is described by the SVN parent path and the repo name separated by a slash. Specify several repos separated by semicolons. They are created, if they does not exist. The environment variable for the description is build by prefixing the repository group name with `DESCRIPTION_`. Spaces in group or repo name are not allowed. See the examples below.
+Repositories are grouped and managed within so-called *"repository groups"* or *"SVN parent paths"*. In fact that are simple directories inside `/data/svn` wherein the proper repositories are residing. You can provide a description for these directories which is used by WebSVN.   
+You specify all repositories via `SUBVERSION_REPOS`. A repository is described by the *SVN parent path* and the repo name separated by a slash. Specify several repos separated by semicolon. They are created, if they does not exist. The environment variable for the description is built by prefixing the *repository group* name with `DESCRIPTION_`. Spaces in group or repo name are not allowed. See the examples below.
 
 ### Autoconfiguration via environment
 | Variable | Scope | Default | Example |
@@ -62,7 +63,7 @@ Repositories are grouped and managed within so-called *repository groups* or *SV
 [20]: http://httpd.apache.org/docs/2.4/mod/mod_authnz_ldap.html#authldapurl
 
 ## Running
-Beside `svn://` `http://`is exposed only. To provide extra security and handle your certificate bale, you are highly encouraged to run the `http://` part behind a SSL enabled reverse proxy and publish it via `https://` only. Keep in mind that your passwords are not encrypted via `svn://`.
+Beside `svn://` `http://`is exposed only. To provide adequate security and handle your certificate bale, you are highly encouraged to run the `http://` part behind a SSL enabled reverse proxy and publishing `https://` only. Keep in mind that your passwords are not encrypted via `svn://`.
 
 ### Running the docker image
 Use docker to run the container as you normally would.
@@ -89,10 +90,10 @@ We are using Apache htpasswd for `httpd` local auth and SASL for `svnserve` loca
 `docker exec -u apache -it subversion htpasswd -mb .htpasswd foobar password`
 
 ## TODO
-* Apache publishes XML for repository indexing. This is transformed to HTML via [9][XSLT]. Make the XSLT looks smooth like the group listing HTML to avoid the visual break at SVN DAV browsing.
-* **Bind** mount volumes under Docker for Windows should not be used actually, because they are [10][problematic] due to `chmod` and `chown`. Files are created as user `root` and this cannot be changed. Just there is no workaround for this behaviour. Maybe an configurable solution could be to run `httpd` and `svnserve` as `root`, if this becomes an issue.
-* It's annoying to maintain two local password databases actually. The solution is to enable Apache to use SASL too. Because there is no SASL auth feature in the official vanilla distribution, we could try to make [11][mod-authn-sasl] running.
-* Add an additional WebSVN instance with [12][MultiViews] enabled.
+* Apache publishes XML for repository indexing. This is transformed to HTML via [XSLT][9]. Make the XSLT looks smooth like the group listing HTML to avoid the visual break at SVN DAV browsing.
+* **Bind** mount volumes under Docker for Windows should not be used actually, because they are [problematic][10] due to `chmod` and `chown`. Files are created as user `root` and this cannot be changed. Just there is no workaround for this behaviour. Maybe an configurable solution could be to run `httpd` and `svnserve` as `root`, if this becomes an issue.
+* It's annoying to maintain two local password databases actually. The solution is to enable Apache to use SASL too. Because there is no SASL auth feature in the official vanilla distribution, we could try to make [mod-authn-sasl][11] running.
+* Add an additional WebSVN instance with [MultiViews][12] enabled.
 
 [9]: https://svn.apache.org/repos/asf/subversion/trunk/tools/xslt/svnindex.xsl
 [10]: https://docs.docker.com/docker-for-windows/troubleshoot/#permissions-errors-on-data-directories-for-shared-volumes
@@ -100,9 +101,9 @@ We are using Apache htpasswd for `httpd` local auth and SASL for `svnserve` loca
 [12]: https://websvnphp.github.io/docs/install.html#multiviews
 
 ## Towards SSL/TLS and Alpine
-Alpine Linux is linking almost all packages against [13][LibreSSL]. LibreSSL should be compatible to [14][OpenSSL]. But it ***isn't***. I fought against a bug in LibreSSL a couple of days. There are servers with certificates from well-known CA's and OpenSSL works like a charm. But LibreSSL ***doesn't***. This is because of a bug in LibreSSL with TLSv1.2 and elliptic curve handshaking. [^1][^2]
+Alpine Linux is linking almost all packages against [LibreSSL][13]. LibreSSL should be compatible to [OpenSSL][14]. But it ***isn't***. I fought against a bug in LibreSSL a couple of days. There are servers with certificates from well-known CA's and OpenSSL works like a charm. But LibreSSL ***doesn't***. This is because of a bug in LibreSSL with TLSv1.2 and elliptic curve handshaking. <sup id="a1">[(1)](#f1)</sup><sup id="a2">[(2)](#f2)</sup>
 
-In my opinion, this is a **major drawback** for Alpine Linux, because it can **break** SSL/TLS security for **any package**. In our case OpenLDAP via SASL and Apache. Beside [15][nginx] I don't know about an application that support feeding *Elliptic curve groups* to their TLS stack. The workaround for our case was a forced downgrade to AES128-SHA cipher. And feeding ciphers is supported by OpenLDAP. But feeding *Elliptic curve groups* isn't. It could have been worse.
+In my opinion, this is a **major drawback** for Alpine Linux, because it can **break** SSL/TLS security for **any package**. In our case OpenLDAP via SASL and Apache. Beside [nginx][15] I don't know about an application that support feeding *Elliptic curve groups* to their TLS stack. The workaround for our case was a forced downgrade to AES128-SHA cipher. And feeding ciphers is supported by OpenLDAP. But feeding *Elliptic curve groups* isn't. It could have been worse.
 
 If you run into this issue, try to use `LDAP_TLS_Ciphers` and hoping your server supports some working fallback.
 
@@ -150,6 +151,6 @@ New, TLSv1/SSLv3, Cipher is ECDHE-RSA-AES128-SHA
 [17]: http://svnbook.red-bean.com/1.7/svn.ref.mod_dav_svn.conf.html
 [18]: http://svnbook.red-bean.com/1.7/svn.ref.mod_authz_svn.conf.html
 
-<hr size="1"/>
-<a name="f1">1)</a> https://bugs.alpinelinux.org/issues/8199 [↩](#a1)   
+---
+<a name="f1">1)</a> https://bugs.alpinelinux.org/issues/8199 [↩](#a1)     
 <a name="f2">2)</a> https://github.com/libressl-portable/openbsd/issues/79 [↩](#a2)
