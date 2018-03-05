@@ -149,6 +149,6 @@ New, TLSv1/SSLv3, Cipher is ECDHE-RSA-AES128-SHA
 [17]: http://svnbook.red-bean.com/1.7/svn.ref.mod_dav_svn.conf.html
 [18]: http://svnbook.red-bean.com/1.7/svn.ref.mod_authz_svn.conf.html
 
-<hr size="0.5"/>
-<a name="f1">1)</a> https://bugs.alpinelinux.org/issues/8199 [↩](#a1)   
+---
+<a name="f1">1)</a> https://bugs.alpinelinux.org/issues/8199 [↩](#a1)     
 <a name="f2">2)</a> https://github.com/libressl-portable/openbsd/issues/79 [↩](#a2)
