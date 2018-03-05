@@ -80,6 +80,17 @@ Devolopment:
 
 `docker exec -u apache -it subversion /bin/sh`
 
+### Accessing your repositories
+
+Assume your docker exposes to `localhost`:
+
+* Browse via SVN DAV: `http://localhost/`
+* Browse via WebSVN: `http://localhost/websvn/`
+* SVN access via `http`: `svn info --username=admin http://localhost/svn/sandbox/test`
+* SVN access via `svn`: `svn info --username=admin svn://localhost/sandbox/test`
+
+The tailing part of the URL is `group/repo`, for HTTP prefixed with `svn/`.
+
 ### Setting local user passwords
 We are using Apache htpasswd for `httpd` local auth and SASL for `svnserve` local auth. Unfortunately we had to maintain both auth sources until now.
 
