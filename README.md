@@ -13,10 +13,10 @@ Docker container for [1][Subversion] with [2][WebSVN].
 * Repository grouping via SVN parent path
 * Fancy SVN DAV [7][repository group browsing] inspired by [8][Apaxy]
 
-[3]: http://svnbook.red-bean.com/de/1.7/svn.serverconfig.svnserve.html
-[4]: http://svnbook.red-bean.com/de/1.7/svn.serverconfig.httpd.html
+[3]: http://svnbook.red-bean.com/1.7/svn.serverconfig.svnserve.html
+[4]: http://svnbook.red-bean.com/1.7/svn.serverconfig.httpd.html
 [5]: https://alpinelinux.org/
-[6]: http://svnbook.red-bean.com/de/1.7/svn.serverconfig.pathbasedauthz.html
+[6]: http://svnbook.red-bean.com/1.7/svn.serverconfig.pathbasedauthz.html
 [7]: http://httpd.apache.org/docs/2.4/mod/mod_autoindex.html
 [8]: https://oupala.github.io/apaxy/
 
@@ -29,13 +29,21 @@ Docker container for [1][Subversion] with [2][WebSVN].
 ## Configuration
 
 ### Persistent storage
+Repositories are stored inside *repository groups* or *SVN parent paths* under `/data/svn`. This directory is published. To enable persistence, run your docker container via:
+
+* named volume: `-v svn_repos:/data/svn`
+* bind mount: `-v /path/to/svn_repos:/data/svn`
+
+The following three files under `/data/svn` need special attention, too: `.htpasswd`, `.svn.sasldb` and `.svn.access`. This could become important, if you want to backup your environment. Backup your repositories as usual, but keep a copy of this files when indicated, because your authentication and authorization configuration is stored here.
 
 ### Repository groups
+Repositories are grouped and managed within so-called *repository groups* or *SVN parent paths*. In fact that are simple directories inside `/data/svn` within the proper repositories are residing. You can provide a description for these directories which is used by WebSVN. You specify all repositories via `SUBVERSION_REPOS`. A repository is described by the SVN parent path and the repo name separated by a slash. Specify several repos separated by semicolons. They are created, if they does not exist. The environment variable for the description is build by prefixing the repository group name with `DESCRIPTION_`. See the examples below.
+
 
 ### Autoconfiguration via environment
 | Variable | Scope | Default | Example |
 | --- | --- | --- | --- |
-| SUBVERSION_REPOS | recommended | sandbox/test | **legacy**/code **legacy**/conf **dev**/apps **prod**/apps |
+| **SUBVERSION_REPOS** | recommended | sandbox/test | **legacy**/code **legacy**/conf **dev**/apps **prod**/apps |
 | DESCRIPTION_**legacy** | recommended | | Legacy stuff |
 | DESCRIPTION_**prod** | recommended | | Production app code & config |
 | DESCRIPTION_**dev** | recommended | | Development app code & config |
@@ -53,6 +61,7 @@ Docker container for [1][Subversion] with [2][WebSVN].
 | SASL_LDAP_FILTER | optional \| LDAP mandatory | | (uid=%U) |
 
 ## Running
+Beside `svn://` `http://`is exposed only. To provide extra security and handle your certificate bale, you are highly encouraged to run the `http://` part behind a SSL enabled reverse proxy and publish it via `https://` only. Keep in mind that your passwords are not encrypted via `svn://`.
 
 ### Running the docker image
 Use docker to run the container as you normally would.
@@ -80,24 +89,26 @@ We are using Apache htpasswd for `httpd` local auth and SASL for `svnserve` loca
 * Apache publishes XML for repository indexing. This is transformed to HTML via [9][XSLT]. Make the XSLT looks smooth like the group listing HTML to avoid the visual break at SVN DAV browsing.
 * **Bind** mount volumes under Docker for Windows should not be used actually, because they are [10][problematic] due to `chmod` and `chown`. Files are created as user `root` and this cannot be changed. Just there is no workaround for this behaviour. Maybe an configurable solution could be to run `httpd` and `svnserve` as `root`, if this becomes an issue.
 * It's annoying to maintain two local password databases actually. The solution is to enable Apache to use SASL too. Because there is no SASL auth feature in the official vanilla distribution, we could try to make [11][mod-authn-sasl] running.
+* Add an additional WebSVN instance with [12][MultiViews] enabled.
 
 [9]: https://svn.apache.org/repos/asf/subversion/trunk/tools/xslt/svnindex.xsl
 [10]: https://docs.docker.com/docker-for-windows/troubleshoot/#permissions-errors-on-data-directories-for-shared-volumes
 [11]: https://sourceforge.net/projects/mod-authn-sasl
+[12]: https://websvnphp.github.io/docs/install.html#multiviews
 
 ## Towards SSL/TLS and Alpine
-Alpine Linux is linking almost all packages against [12][LibreSSL]. LibreSSL should be compatible to [13][OpenSSL]. But it ***isn't***. I fought against a bug in LibreSSL a couple of days. There are servers with certificates from well-known CA's and OpenSSL works like a charm. But LibreSSL ***doesn't***. This is because of a bug in LibreSSL with TLSv1.2 and elliptic curve handshaking. [^1][^2]
+Alpine Linux is linking almost all packages against [13][LibreSSL]. LibreSSL should be compatible to [14][OpenSSL]. But it ***isn't***. I fought against a bug in LibreSSL a couple of days. There are servers with certificates from well-known CA's and OpenSSL works like a charm. But LibreSSL ***doesn't***. This is because of a bug in LibreSSL with TLSv1.2 and elliptic curve handshaking. [^1][^2]
 
-In my opinion, this is a **major drawback** for Alpine Linux, because it can **break** SSL/TLS security for **any package**. In our case OpenLDAP via SASL and Apache. Beside [14][nginx] I don't know about an application that support feeding *Elliptic curve groups* to their TLS stack. The workaround for our case was a forced downgrade to AES128-SHA cipher. And feeding ciphers is supported by OpenLDAP. But feeding *Elliptic curve groups* isn't. It could have been worse.
+In my opinion, this is a **major drawback** for Alpine Linux, because it can **break** SSL/TLS security for **any package**. In our case OpenLDAP via SASL and Apache. Beside [15][nginx] I don't know about an application that support feeding *Elliptic curve groups* to their TLS stack. The workaround for our case was a forced downgrade to AES128-SHA cipher. And feeding ciphers is supported by OpenLDAP. But feeding *Elliptic curve groups* isn't. It could have been worse.
 
 If you run into this issue, try to use `LDAP_TLS_Ciphers` and hoping your server supports some working fallback.
 
 [^1]: https://bugs.alpinelinux.org/issues/8199 "LibreSSL Bug"
 [^2]: https://github.com/libressl-portable/openbsd/issues/79 "LibreSSL Bug"
 
-[12]: http://www.libressl.org/
-[13]: https://www.openssl.org/
-[14]: https://nginx.org/
+[13]: http://www.libressl.org/
+[14]: https://www.openssl.org/
+[15]: https://nginx.org/
 
 ```bash
 # Uhmpf... BROKEN!!
@@ -132,6 +143,6 @@ New, TLSv1/SSLv3, Cipher is ECDHE-RSA-AES128-SHA
 
 > Written with [StackEdit](https://stackedit.iaean.net/).
 
-[15]: http://svnbook.red-bean.com/de/1.7/svn.ref.svnserve.html
-[16]: http://svnbook.red-bean.com/de/1.7/svn.ref.mod_dav_svn.conf.html
-[17]: http://svnbook.red-bean.com/de/1.7/svn.ref.mod_authz_svn.conf.html
+[16]: http://svnbook.red-bean.com/1.7/svn.ref.svnserve.html
+[17]: http://svnbook.red-bean.com/1.7/svn.ref.mod_dav_svn.conf.html
+[18]: http://svnbook.red-bean.com/1.7/svn.ref.mod_authz_svn.conf.html

@@ -9,17 +9,24 @@ function directory_empty() {
 echo Running: "$@"
 
 ###
+### Empty bind mount volume bootstrapping...
+###
+
+find /data/dist -type f -name '.*' -exec mv -n {} /data/svn \;
+
+###
 ### Repository bootstrapping...
 ###
 
-if [[ ! -d ${SVN_BASE}/sandbox ]]; then
-  mkdir -p ${SVN_BASE}/sandbox
-  ln -s ../.svn.access ${SVN_BASE}/sandbox/.svn.access
-  chown -R apache:apache ${SVN_BASE}/sandbox
-fi
-if [[ ! -d ${SVN_BASE}/sandbox/test ]]; then
-  svnadmin create ${SVN_BASE}/sandbox/test
-  chown -R apache:apache ${SVN_BASE}/sandbox/test
+# default repo
+if [[ -z "${SUBVERSION_REPOS}" ]]; then
+  SUBVERSION_REPOS=sandbox/test
+  DESCRIPTION_sandbox='Sandbox and Testbed'
+  cat <<EOT >>/data/svn/.svn.access
+
+[test:/]
+* = rw
+EOT
 fi
 
 declare -A repos
@@ -114,12 +121,6 @@ ldap_start_tls: ${LDAP_Use_TLS}
 EOT
   fi
 fi
-
-###
-### Empty bind mount volume bootstrapping...
-###
-
-find /data/dist -type f -name '.*' -exec mv -n {} /data/svn \;
 
 ###
 ### Local SASL/htpasswd bootstrapping...
