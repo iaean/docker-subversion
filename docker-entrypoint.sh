@@ -30,14 +30,16 @@ EOT
 fi
 
 declare -A repos
-for r in ${SUBVERSION_REPOS} # No spaces allowed...
+OIFS=$IFS
+IFS=';' read -a TOKEN <<< "${SUBVERSION_REPOS}"
+for r in "${TOKEN[@]}"
 do
-  DIR=`echo ${r} | cut -s -d/ -f1`
-  REP=`echo ${r} | cut -s -d/ -f2`
-  if [[ -n ${DIR} && -n ${REP} && `basename ${r}` == "${REP}" ]]; then
+  DIR=`echo ${r} | cut -s -d/ -f1 | sed 's/\s/_/g'`
+  REP=`echo ${r} | cut -s -d/ -f2 | sed 's/\s/_/g'`
+  if [[ -n ${DIR} && -n ${REP} && `basename "${r}"` == "${REP}" ]]; then
     repos[${DIR}]+=" ${REP}"
     # dynamicly making variable name
-    current_desc=DESCRIPTION_${DIR}
+    current_desc=DESCRIPTION_"${DIR}"
     current_desc=${!current_desc:-'Unlabeled repository group'}
     if [[ ! -d ${SVN_BASE}/${DIR}/${REP} ]]; then
       if [[ ! -d ${SVN_BASE}/${DIR} ]]; then
@@ -53,6 +55,7 @@ do
     echo "Skipping invalid: ${r}"
   fi
 done
+IFS=$OIFS
 
 for key in ${!repos[*]}; do
   # for value in ${repos[$key]}; do
@@ -88,7 +91,8 @@ if [[ -n $LDAP_BindDN && -n $LDAP_BindPW ]]; then
   fi
 
   # Apache LDAP
-  if [[ -n $APACHE_LDAP_ALIAS && -n $APACHE_LDAP_URL ]]; then
+  APACHE_LDAP_ALIAS=${APACHE_LDAP_ALIAS:-directory}
+  if [[ -n $APACHE_LDAP_URL ]]; then
     if [[ ${LDAP_Use_TLS} == "yes" ]]; then
       APACHE_LDAP_URL=`echo ${APACHE_LDAP_URL} | sed -e 's/^ldaps/ldap/'`
       APACHE_LDAP_URL="${APACHE_LDAP_URL} TLS"

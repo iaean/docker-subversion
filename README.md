@@ -37,12 +37,12 @@ Repositories are stored inside *repository groups* or *SVN parent paths* under `
 The following three files under `/data/svn` need special attention, too: `.htpasswd`, `.svn.sasldb` and `.svn.access`. This could become important, if you want to backup your environment. Backup your repositories as usual, but keep a copy of this files when indicated, because your authentication and authorization configuration is stored here.
 
 ### Repository groups
-Repositories are grouped and managed within so-called *repository groups* or *SVN parent paths*. In fact that are simple directories inside `/data/svn` within the proper repositories are residing. You can provide a description for these directories which is used by WebSVN. You specify all repositories via `SUBVERSION_REPOS`. A repository is described by the SVN parent path and the repo name separated by a slash. Specify several repos separated by semicolons. They are created, if they does not exist. The environment variable for the description is build by prefixing the repository group name with `DESCRIPTION_`. See the examples below.
+Repositories are grouped and managed within so-called *repository groups* or *SVN parent paths*. In fact that are simple directories inside `/data/svn` within the proper repositories are residing. You can provide a description for these directories which is used by WebSVN. You specify all repositories via `SUBVERSION_REPOS`. A repository is described by the SVN parent path and the repo name separated by a slash. Specify several repos separated by semicolons. They are created, if they does not exist. The environment variable for the description is build by prefixing the repository group name with `DESCRIPTION_`. Spaces in group or repo name are not allowed. See the examples below.
 
 ### Autoconfiguration via environment
 | Variable | Scope | Default | Example |
 | --- | --- | --- | --- |
-| **SUBVERSION_REPOS** | recommended | sandbox/test | **legacy**/code **legacy**/conf **dev**/apps **prod**/apps |
+| **SUBVERSION_REPOS** | recommended | sandbox/test | **legacy**/code;**legacy**/conf;**dev**/apps;**prod**/apps |
 | DESCRIPTION_**legacy** | recommended | | Legacy stuff |
 | DESCRIPTION_**prod** | recommended | | Production app code & config |
 | DESCRIPTION_**dev** | recommended | | Development app code & config |
@@ -53,11 +53,13 @@ Repositories are grouped and managed within so-called *repository groups* or *SV
 | LDAP_Use_TLS |optional | no | yes \| no |
 | LDAP_TLS_Ciphers | optional | | |
 | LDAP_TLS_VerifyCert | optional | allow | never \| allow \| try \| demand |
-| APACHE_LDAP_ALIAS | optional \| LDAP mandatory | | synology |
-| APACHE_LDAP_URL | optional \| LDAP mandatory | | ldaps://synology/cn=users,dc=example,dc=com?uid?sub |
+| APACHE_LDAP_ALIAS | optional | directory | synology |
+| [APACHE_LDAP_URL][20] | optional \| LDAP mandatory | | ldaps://synology/cn=users,dc=example,dc=com?uid?sub |
 | SASL_LDAP_SERVER | optional \| LDAP mandatory | | ldaps://synology |
 | SASL_LDAP_SEARCHBASE | optional \| LDAP mandatory | | cn=users,dc=example,dc=com |
 | SASL_LDAP_FILTER | optional \| LDAP mandatory | | (uid=%U) |
+
+[20]: http://httpd.apache.org/docs/2.4/mod/mod_authnz_ldap.html#authldapurl
 
 ## Running
 Beside `svn://` `http://`is exposed only. To provide extra security and handle your certificate bale, you are highly encouraged to run the `http://` part behind a SSL enabled reverse proxy and publish it via `https://` only. Keep in mind that your passwords are not encrypted via `svn://`.
