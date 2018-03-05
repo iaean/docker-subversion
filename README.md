@@ -99,7 +99,7 @@ We are using Apache htpasswd for `httpd` local auth and SASL for `svnserve` loca
 [12]: https://websvnphp.github.io/docs/install.html#multiviews
 
 ## Towards SSL/TLS and Alpine
-Alpine Linux is linking almost all packages against [LibreSSL][13]. LibreSSL should be compatible to [OpenSSL][14]. But it ***isn't***. I fought against a bug in LibreSSL a couple of days. There are servers with certificates from well-known CA's and OpenSSL works like a charm. But LibreSSL ***doesn't***. This is because of a bug in LibreSSL with TLSv1.2 and elliptic curve handshaking. [^1][^2]
+Alpine Linux is linking almost all packages against [LibreSSL][13]. LibreSSL should be compatible to [OpenSSL][14]. But it ***isn't***. I fought against a bug in LibreSSL a couple of days. There are servers with certificates from well-known CA's and OpenSSL works like a charm. But LibreSSL ***doesn't***. This is because of a bug in LibreSSL with TLSv1.2 and elliptic curve handshaking. <sup id="a1">[(1)](#f1)</sup><sup id="a2">[(2)](#f2)</sup>
 
 In my opinion, this is a **major drawback** for Alpine Linux, because it can **break** SSL/TLS security for **any package**. In our case OpenLDAP via SASL and Apache. Beside [nginx][15] I don't know about an application that support feeding *Elliptic curve groups* to their TLS stack. The workaround for our case was a forced downgrade to AES128-SHA cipher. And feeding ciphers is supported by OpenLDAP. But feeding *Elliptic curve groups* isn't. It could have been worse.
 
@@ -150,5 +150,5 @@ New, TLSv1/SSLv3, Cipher is ECDHE-RSA-AES128-SHA
 [18]: http://svnbook.red-bean.com/1.7/svn.ref.mod_authz_svn.conf.html
 
 <hr size="0.5"/>
-<a name="f1">1)</a> https://bugs.alpinelinux.org/issues/8199 [↩](#a1)<br/>
+<a name="f1">1)</a> https://bugs.alpinelinux.org/issues/8199 [↩](#a1)   
 <a name="f2">2)</a> https://github.com/libressl-portable/openbsd/issues/79 [↩](#a2)
