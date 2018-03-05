@@ -5,7 +5,7 @@ Docker container for [Subversion][1] with [WebSVN][2].
 [2]: https://websvnphp.github.io/
 
 ## Features
-* Provides coexistent access via [`svn://`][3] and [`http[s]://`][4]
+* Provides coexistent access via [`svn://`][3] and [`http://`][4]
 * Ultra small [Alpine Linux][5] based image
 * LDAP and/or local password database based authentication via SASL
 * [Path based authorization][6]
