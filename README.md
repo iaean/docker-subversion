@@ -51,16 +51,16 @@ You specify all repositories via `SUBVERSION_REPOS`. A repository is described b
 | DESCRIPTION_**dev** | recommended | | Development app code & config |
 | SVN_LOCAL_ADMIN_USER | recommended | | admin |
 | SVN_LOCAL_ADMIN_PASS | recommended | | password |
-| LDAP_BindDN | optional \| LDAP mandatory | | uid=root,cn=users,dc=example,dc=com |
-| LDAP_BindPW | optional \| LDAP mandatory | | password |
-| SASL_LDAP_SERVER | optional \| LDAP mandatory | | ldaps://synology |
-| SASL_LDAP_SEARCHBASE | optional \| LDAP mandatory | | cn=users,dc=example,dc=com |
-| SASL_LDAP_FILTER | optional \| LDAP mandatory | | (uid=%U) |
-| [APACHE_LDAP_URL][20] | optional \| LDAP mandatory | | ldaps://synology/cn=users,dc=example,dc=com?uid?sub |
+| LDAP_BindDN | optional &#124; LDAP mandatory | | uid=root,cn=users,dc=example,dc=com |
+| LDAP_BindPW | optional &#124; LDAP mandatory | | password |
+| SASL_LDAP_SERVER | optional &#124; LDAP mandatory | | ldaps://synology |
+| SASL_LDAP_SEARCHBASE | optional &#124; LDAP mandatory | | cn=users,dc=example,dc=com |
+| SASL_LDAP_FILTER | optional &#124; LDAP mandatory | | (uid=%U) |
+| [APACHE_LDAP_URL][20] | optional &#124; LDAP mandatory | | ldaps://synology/cn=users,dc=example,dc=com?uid?sub |
 | APACHE_LDAP_ALIAS | optional | directory | synology |
-| LDAP_Use_TLS |optional | no | yes \| no |
+| LDAP_Use_TLS |optional | no | yes &#124; no |
 | LDAP_TLS_Ciphers | optional | | |
-| LDAP_TLS_VerifyCert | optional | allow | never \| allow \| try \| demand |
+| LDAP_TLS_VerifyCert | optional | allow | never &#124; allow &#124; try &#124; demand |
 
 [20]: http://httpd.apache.org/docs/2.4/mod/mod_authnz_ldap.html#authldapurl
 
