@@ -21,10 +21,12 @@ Docker container for [Subversion][1] with [WebSVN][2].
 [8]: https://oupala.github.io/apaxy/
 
 ## Installation
-* Get it from docker hub
-* or build the image as you normally would: `docker build --tag=subversion ./`
+* Get it from [docker hub][21]: `docker pull iaean/subversion`
+* -or- build the image as you normally would: `docker build --tag=subversion ./`
 * Setting your environment
 * Yee-haw...
+
+[21]: https://hub.docker.com/r/iaean/subversion/
 
 ## Configuration
 
