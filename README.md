@@ -23,8 +23,8 @@ Docker container for [Subversion][1] with [WebSVN][2].
 ## Installation
 * Get it from [docker hub][21]: `docker pull iaean/subversion`
 * -or- build the image as you normally would: `docker build --tag=subversion ./`
-* Setting your environment
-* Yee-haw...
+* Setting your environment...
+* ...Yee-haw!
 
 [21]: https://hub.docker.com/r/iaean/subversion/
 
@@ -65,7 +65,23 @@ You specify all repositories via `SUBVERSION_REPOS`. A repository is described b
 [20]: http://httpd.apache.org/docs/2.4/mod/mod_authnz_ldap.html#authldapurl
 
 ## Running
-Beside `svn://` `http://`is exposed only. To provide adequate security and handle your certificate bale, you are highly encouraged to run the `http://` part behind a SSL enabled reverse proxy and publishing `https://` only. Keep in mind that your passwords are not encrypted via `svn://`.
+Beside `svn://` `http://`is exposed only. To provide adequate security and handle your certificate bale, you are highly encouraged to run the `http://` part behind a SSL enabled reverse proxy and publishing `https://` only.
+
+```apache
+# All your SSL and virtual host stuff...
+
+<Location />
+  SSLRequireSSL
+</Location>
+
+ProxyPreserveHost On
+RequestHeader set X-Forwarded-Proto "https"
+
+ProxyPass / http://subversion:4711/
+ProxyPassReverse / http://subversion:4711/
+```
+
+Keep in mind that your passwords are not encrypted via `svn://`.
 
 ### Running the docker image
 Use docker to run the container as you normally would.
@@ -114,7 +130,7 @@ We are using Apache htpasswd for `httpd` local auth and SASL for `svnserve` loca
 [12]: https://websvnphp.github.io/docs/install.html#multiviews
 
 ## Towards SSL/TLS and Alpine
-Alpine Linux is linking almost all packages against [LibreSSL][13]. LibreSSL should be compatible to [OpenSSL][14]. But it ***isn't***. I fought against a bug in LibreSSL a couple of days. There are servers with certificates from well-known CA's and OpenSSL works like a charm. But LibreSSL ***doesn't***. This is because of a bug in LibreSSL with TLSv1.2 and elliptic curve handshaking. <sup id="a1">[(1)](#f1)</sup><sup id="a2">[(2)](#f2)</sup>
+Alpine Linux is linking almost all packages against [LibreSSL][13]. LibreSSL should be compatible to [OpenSSL][14]. But it ***isn't***. I fought against a bug in LibreSSL a couple of days. There are servers with certificates from well-known CA's and OpenSSL works like a charm. But LibreSSL ***doesn't***. This is because of a bug in LibreSSL with TLSv1.2 and elliptic curve handshaking. <b><sup id="a1">[(1)](#f1)</sup><sup id="a2">[(2)](#f2)</sup></b>
 
 In my opinion, this is a **major drawback** for Alpine Linux, because it can **break** SSL/TLS security for **any package**. In our case OpenLDAP via SASL and Apache. Beside [nginx][15] I don't know about an application that support feeding *Elliptic curve groups* to their TLS stack. The workaround for our case was a forced downgrade to AES128-SHA cipher. And feeding ciphers is supported by OpenLDAP. But feeding *Elliptic curve groups* isn't. It could have been worse.
 
@@ -157,8 +173,6 @@ New, TLSv1/SSLv3, Cipher is ECDHE-RSA-AES128-SHA
     Protocol  : TLSv1.1
     Cipher    : ECDHE-RSA-AES128-SHA
 ```
-
-> Written with [StackEdit](https://stackedit.iaean.net/).
 
 [16]: http://svnbook.red-bean.com/1.7/svn.ref.svnserve.html
 [17]: http://svnbook.red-bean.com/1.7/svn.ref.mod_dav_svn.conf.html
