@@ -67,14 +67,6 @@ RUN apk add --no-cache apache2 apache2-webdav apache2-ldap apache2-utils && \
           /etc/apache2/conf.d/userdir.conf && \
     mkdir /run/apache2
 
-COPY apache.conf/httpd.conf /etc/apache2/
-COPY apache.conf/ldap.conf /etc/apache2/conf.d/
-COPY apache.conf/mpm.conf /etc/apache2/conf.d/
-COPY apache.conf/svn.conf /etc/apache2/conf.d/
-COPY apache.conf/websvn.conf /etc/apache2/conf.d/
-COPY apache.conf/autoindex.conf /etc/apache2/conf.d/
-COPY apache.conf/icons/* /var/www/localhost/icons/
-
 # Install WebSVN
 #
 ENV WEBSVN_VERSION=2.3.3
@@ -82,23 +74,33 @@ RUN svn --username guest --password "" export http://websvn.tigris.org/svn/websv
     chown -R apache:apache /var/www/html/cache && \
     chmod -R 0700 /var/www/html/cache
 
-COPY websvn.conf /var/www/html/include/config.php
-# COPY websvn.conf /var/www/localhost/htdocs/websvn/include/config.php
-
 RUN mkdir -p /data/dist && \
     svn cat https://svn.apache.org/repos/asf/subversion/trunk/tools/xslt/svnindex.css > /data/dist/.svnindex.css && \
     svn cat https://svn.apache.org/repos/asf/subversion/trunk/tools/xslt/svnindex.xsl > /data/dist/.svnindex.xsl && \
     sed -i 's/\/svnindex.css/\/repos\/.svnindex.css/' /data/dist/.svnindex.xsl
+
+RUN mkdir -p $SVN_BASE && \
+    chown -R apache:apache $SVN_BASE
+    # apk add --no-cache joe openldap-clients libressl
+
+# Apache config
+#
+COPY apache.conf/httpd.conf /etc/apache2/
+COPY apache.conf/conf.d/*.conf /etc/apache2/conf.d/
+COPY apache.conf/icons/* /var/www/localhost/icons/
 
 COPY apache.conf/header.html /data/dist/.header.html
 COPY apache.conf/footer.html /data/dist/.footer.html
 COPY apache.conf/style.css /data/dist/.style.css
 COPY svn.access /data/dist/.svn.access
 
-RUN mkdir -p $SVN_BASE && \
-    chown -R apache:apache $SVN_BASE
-    # apk add --no-cache joe openldap-clients libressl
+# WebSVN config
+#
+COPY websvn.conf /var/www/html/include/config.php
+# COPY websvn.conf /var/www/localhost/htdocs/websvn/include/config.php
 
+# SASL, LDAP, svnserve config
+#
 COPY svnserve.conf /etc/subversion/
 COPY svnsasl.conf /etc/sasl2/svn.conf
 COPY ldap.conf /etc/openldap/

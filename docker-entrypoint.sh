@@ -164,15 +164,23 @@ sudo -u apache -g apache /usr/bin/svnserve -d -r ${SVN_BASE} \
 ###
 
 if [[ `basename ${1}` == "httpd" ]]; then # prod
-  touch /var/log/apache2/error.log
-  touch /var/log/apache2/subversion.log
-  touch /var/log/apache2/access.log
+  # The tail approach...
+  #
+  # touch /var/log/apache2/error.log
+  # touch /var/log/apache2/subversion.log
+  # touch /var/log/apache2/access.log
+  #
+  # tail -f /var/log/apache2/error.log &
+  # tail -f /var/log/apache2/subversion.log &
+  # tail -f /var/log/apache2/access.log &
 
-  tail -f /var/log/apache2/error.log &
-  tail -f /var/log/apache2/subversion.log &
-  tail -f /var/log/apache2/access.log &
+  # The direct approach...
+  #
+  ln -s /dev/stderr /var/log/apache2/error.log
+  ln -s /dev/stdout /var/log/apache2/access.log
+  ln -s /dev/stdout /var/log/apache2/subversion.log
 
-  exec "$@" </dev/null >/dev/null 2>&1
+  exec "$@" </dev/null #>/dev/null 2>&1
 else # dev
   httpd -k start
 fi
