@@ -176,12 +176,16 @@ if [[ `basename ${1}` == "httpd" ]]; then # prod
 
   # The direct approach...
   #
-  ln -s /dev/stderr /var/log/apache2/error.log
-  ln -s /dev/stdout /var/log/apache2/access.log
-  ln -s /dev/stdout /var/log/apache2/subversion.log
+  ln -sf /dev/stderr /var/log/apache2/error.log
+  ln -sf /dev/stdout /var/log/apache2/access.log
+  ln -sf /dev/stdout /var/log/apache2/subversion.log
 
   exec "$@" </dev/null #>/dev/null 2>&1
 else # dev
+  rm -f /var/log/apache2/error.log
+  rm -f /var/log/apache2/access.log
+  rm -f /var/log/apache2/subversion.log
+
   httpd -k start
 fi
 
