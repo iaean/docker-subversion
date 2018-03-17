@@ -8,96 +8,99 @@ function directory_empty() {
 
 echo Running: "$@"
 
-###
-### Empty bind mount volume bootstrapping...
-###
+# Avoid destroying bootstrapping by simple start/stop
+if [[ ! -e /.bootstrapped ]]; then
 
-find /data/dist -type f -name '.*' -exec mv -n {} /data/svn \;
+  ###
+  ### Empty bind mount volume bootstrapping...
+  ###
 
-###
-### Repository bootstrapping...
-###
+  find /data/dist -type f -name '.*' -exec mv -n {} /data/svn \;
 
-# default repo
-if [[ -z "${SUBVERSION_REPOS}" ]]; then
-  SUBVERSION_REPOS=sandbox/test
-  DESCRIPTION_sandbox='Sandbox and Testbed'
-  cat <<EOT >>/data/svn/.svn.access
+  ###
+  ### Repository bootstrapping...
+  ###
+
+  # default repo
+  if [[ -z "${SUBVERSION_REPOS}" ]]; then
+    SUBVERSION_REPOS=sandbox/test
+    DESCRIPTION_sandbox='Sandbox and Testbed'
+    cat <<EOT >>/data/svn/.svn.access
 
 [test:/]
 * = rw
 EOT
-fi
+  fi
 
-declare -A repos
-OIFS=$IFS
-IFS=';' read -a TOKEN <<< "${SUBVERSION_REPOS}"
-for r in "${TOKEN[@]}"
-do
-  DIR=`echo ${r} | cut -s -d/ -f1 | sed 's/\s/_/g'`
-  REP=`echo ${r} | cut -s -d/ -f2 | sed 's/\s/_/g'`
-  if [[ -n ${DIR} && -n ${REP} && `basename "${r}"` == "${REP}" ]]; then
-    repos[${DIR}]+=" ${REP}"
-    # dynamicly making variable name
-    current_desc=DESCRIPTION_"${DIR}"
-    current_desc=${!current_desc:-'Unlabeled repository group'}
-    if [[ ! -d ${SVN_BASE}/${DIR}/${REP} ]]; then
-      if [[ ! -d ${SVN_BASE}/${DIR} ]]; then
-        mkdir -p ${SVN_BASE}/${DIR}
-        ln -s ../.svn.access ${SVN_BASE}/${DIR}/.svn.access
-        chown -R apache:apache ${SVN_BASE}/${DIR}
+  declare -A repos
+  OIFS=$IFS
+  IFS=';' read -a TOKEN <<< "${SUBVERSION_REPOS}"
+  for r in "${TOKEN[@]}"
+  do
+    DIR=`echo ${r} | cut -s -d/ -f1 | sed 's/\s/_/g'`
+    REP=`echo ${r} | cut -s -d/ -f2 | sed 's/\s/_/g'`
+    if [[ -n ${DIR} && -n ${REP} && `basename "${r}"` == "${REP}" ]]; then
+      repos[${DIR}]+=" ${REP}"
+      # dynamicly making variable name
+      current_desc=DESCRIPTION_"${DIR}"
+      current_desc=${!current_desc:-'Unlabeled repository group'}
+      if [[ ! -d ${SVN_BASE}/${DIR}/${REP} ]]; then
+        if [[ ! -d ${SVN_BASE}/${DIR} ]]; then
+          mkdir -p ${SVN_BASE}/${DIR}
+          ln -s ../.svn.access ${SVN_BASE}/${DIR}/.svn.access
+          chown -R apache:apache ${SVN_BASE}/${DIR}
+        fi
+        svnadmin create ${SVN_BASE}/${DIR}/${REP}
+        chown -R apache:apache ${SVN_BASE}/${DIR}/${REP}
+        echo "Repository ${SVN_BASE}/${DIR}/${REP} inside group '${current_desc}' created..."
       fi
-      svnadmin create ${SVN_BASE}/${DIR}/${REP}
-      chown -R apache:apache ${SVN_BASE}/${DIR}/${REP}
-      echo "Repository ${SVN_BASE}/${DIR}/${REP} inside group '${current_desc}' created..."
+    else
+      echo "Skipping invalid: ${r}"
     fi
-  else
-    echo "Skipping invalid: ${r}"
-  fi
-done
-IFS=$OIFS
+  done
+  IFS=$OIFS
 
-for key in ${!repos[*]}; do
-  # for value in ${repos[$key]}; do
-  #   # getting values
-  #   echo "repo[$key] = $value (${!current_desc})"
-  # done
+  for key in ${!repos[*]}; do
+    # for value in ${repos[$key]}; do
+    #   # getting values
+    #   echo "repo[$key] = $value (${!current_desc})"
+    # done
 
-  current_desc=DESCRIPTION_${key}
-  # Uncomment and use ${current_desc} instead of ${!current_desc}
-  # gives another flavor in WebSVN for undefined parent directories... 
-  # current_desc=${!current_desc:-'Unlabeled repository group'}
+    current_desc=DESCRIPTION_${key}
+    # Uncomment and use ${current_desc} instead of ${!current_desc}
+    # gives another flavor in WebSVN for undefined parent directories... 
+    # current_desc=${!current_desc:-'Unlabeled repository group'}
 
-  apache_snippet="<Location \"/svn/${key}\">\n  DAV svn\n  DavMinTimeout 300\n  SVNParentPath ${SVN_BASE}/${key}\n  SVNListParentPath on\n  SVNIndexXSLT /repos/.svnindex.xsl\n  AuthzSVNAccessFile ${SVN_BASE}/${key}/.svn.access\n</Location>\n"
-  sed -i -e "s#// additional paths...#\$config->parentPath('${SVN_BASE}/${key}', '${!current_desc}');\n&#g" /var/www/html/include/config.php
-  sed -i -e "s#^\# additional repo groups...#${apache_snippet}&#g" /etc/apache2/conf.d/svn.conf
-done
+    apache_snippet="<Location \"/svn/${key}\">\n  DAV svn\n  DavMinTimeout 300\n  SVNParentPath ${SVN_BASE}/${key}\n  SVNListParentPath on\n  SVNIndexXSLT /repos/.svnindex.xsl\n  AuthzSVNAccessFile ${SVN_BASE}/${key}/.svn.access\n</Location>\n"
+    sed -i -e "s#// additional paths...#\$config->parentPath('${SVN_BASE}/${key}', '${!current_desc}');\n&#g" /var/www/html/include/config.php
+    sed -i -e "s#^\# additional repo groups...#${apache_snippet}&#g" /etc/apache2/conf.d/svn.conf
+  done
 
-###
-### LDAP bootstrapping...
-###
+  ###
+  ### LDAP bootstrapping...
+  ###
 
-if [[ -n $LDAP_BindDN && -n $LDAP_BindPW ]]; then
-  # Secure LDAP stuff
-  LDAP_Use_TLS=${LDAP_Use_TLS:-no}
-  LDAP_Use_TLS=${LDAP_Use_TLS,,}
-  if [[ ${LDAP_Use_TLS} != "yes" ]]; then
-    LDAP_Use_TLS=no
-  fi
-  LDAP_TLS_VerifyCert=${LDAP_TLS_VerifyCert:-allow}
-  echo "tls_reqcert ${LDAP_TLS_VerifyCert}" >>/etc/openldap/ldap.conf
-  if [[ -n $LDAP_TLS_Ciphers ]]; then
-    echo "tls_cipher_suite ${LDAP_TLS_Ciphers}" >>/etc/openldap/ldap.conf
-  fi
-
-  # Apache LDAP
-  APACHE_LDAP_ALIAS=${APACHE_LDAP_ALIAS:-directory}
-  if [[ -n $APACHE_LDAP_URL ]]; then
-    if [[ ${LDAP_Use_TLS} == "yes" ]]; then
-      APACHE_LDAP_URL=`echo ${APACHE_LDAP_URL} | sed -e 's/^ldaps/ldap/'`
-      APACHE_LDAP_URL="${APACHE_LDAP_URL} TLS"
+  if [[ -n $LDAP_BindDN && -n $LDAP_BindPW ]]; then
+    # Secure LDAP stuff
+    LDAP_Use_TLS=${LDAP_Use_TLS:-no}
+    LDAP_Use_TLS=${LDAP_Use_TLS,,}
+    if [[ ${LDAP_Use_TLS} != "yes" ]]; then
+      LDAP_Use_TLS=no
     fi
-    cat <<EOT >>/etc/apache2/conf.d/ldap.conf
+    LDAP_TLS_VerifyCert=${LDAP_TLS_VerifyCert:-allow}
+    echo "tls_reqcert ${LDAP_TLS_VerifyCert}" >>/etc/openldap/ldap.conf
+    if [[ -n $LDAP_TLS_Ciphers ]]; then
+      echo "tls_cipher_suite ${LDAP_TLS_Ciphers}" >>/etc/openldap/ldap.conf
+    fi
+
+    # Apache LDAP
+    APACHE_LDAP_ALIAS=${APACHE_LDAP_ALIAS:-directory}
+    if [[ -n $APACHE_LDAP_URL ]]; then
+      if [[ ${LDAP_Use_TLS} == "yes" ]]; then
+        APACHE_LDAP_URL=`echo ${APACHE_LDAP_URL} | sed -e 's/^ldaps/ldap/'`
+        APACHE_LDAP_URL="${APACHE_LDAP_URL} TLS"
+      fi
+      cat <<EOT >>/etc/apache2/conf.d/ldap.conf
 <AuthnProviderAlias ldap ${APACHE_LDAP_ALIAS}>
   AuthLDAPURL ${APACHE_LDAP_URL}
   AuthLDAPBindDN ${LDAP_BindDN}
@@ -105,15 +108,15 @@ if [[ -n $LDAP_BindDN && -n $LDAP_BindPW ]]; then
   AuthLDAPBindAuthoritative off
 </AuthnProviderAlias>
 EOT
-    sed -i -e "s/AuthBasicProvider file/AuthBasicProvider file ${APACHE_LDAP_ALIAS}/g" /etc/apache2/conf.d/*.conf
-  fi
-
-  # SASL LDAP
-  if [[ -n $SASL_LDAP_SERVER && -n $SASL_LDAP_SEARCHBASE && -n $SASL_LDAP_FILTER ]]; then
-    if [[ ${LDAP_Use_TLS} == "yes" ]]; then
-      SASL_LDAP_SERVER=`echo ${SASL_LDAP_SERVER} | sed -e 's/^ldaps/ldap/'`
+      sed -i -e "s/AuthBasicProvider file/AuthBasicProvider file ${APACHE_LDAP_ALIAS}/g" /etc/apache2/conf.d/*.conf
     fi
-    cat <<EOT >/etc/saslauthd.conf
+
+    # SASL LDAP
+    if [[ -n $SASL_LDAP_SERVER && -n $SASL_LDAP_SEARCHBASE && -n $SASL_LDAP_FILTER ]]; then
+      if [[ ${LDAP_Use_TLS} == "yes" ]]; then
+        SASL_LDAP_SERVER=`echo ${SASL_LDAP_SERVER} | sed -e 's/^ldaps/ldap/'`
+      fi
+      cat <<EOT >/etc/saslauthd.conf
 ldap_servers: ${SASL_LDAP_SERVER}
 ldap_bind_dn: ${LDAP_BindDN}
 ldap_bind_pw: ${LDAP_BindPW}
@@ -123,7 +126,10 @@ ldap_filter: ${SASL_LDAP_FILTER}
 ldap_use_sasl: no
 ldap_start_tls: ${LDAP_Use_TLS}
 EOT
+    fi
   fi
+
+  touch /.bootstrapped
 fi
 
 ###
