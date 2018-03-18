@@ -15,7 +15,10 @@ if [[ ! -e /.bootstrapped ]]; then
   ### Empty bind mount volume bootstrapping...
   ###
 
-  find /data/dist -type f -name '.*' -exec mv -n {} /data/svn \;
+  find /data/dist -type f \
+       \( -name '.*.html' -o -name '.*.css' -o -name '.*.xsl' \) \
+       -exec mv -f {} /data/svn \;
+  find /data/dist -type f -name '.svn.access' -exec mv -n {} /data/svn \;
 
   ###
   ### Repository bootstrapping...
@@ -25,11 +28,13 @@ if [[ ! -e /.bootstrapped ]]; then
   if [[ -z "${SUBVERSION_REPOS}" ]]; then
     SUBVERSION_REPOS=sandbox/test
     DESCRIPTION_sandbox='Sandbox and Testbed'
-    cat <<EOT >>/data/svn/.svn.access
+    if [[ ! `grep '\[test:/\]' /data/svn/.svn.access` ]]; then
+      cat <<EOT >>/data/svn/.svn.access
 
 [test:/]
 * = rw
 EOT
+    fi
   fi
 
   declare -A repos
