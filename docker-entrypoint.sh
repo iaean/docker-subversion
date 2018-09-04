@@ -56,6 +56,13 @@ EOT
           chown -R apache:apache ${SVN_BASE}/${DIR}
         fi
         svnadmin create ${SVN_BASE}/${DIR}/${REP}
+        # IMPORTANT: Need to enable svnrdump load...
+        #            ...remove manually after restore.
+        cat <<EOT >${SVN_BASE}/${DIR}/${REP}/hooks/pre-revprop-change
+#!/bin/sh
+exit 0
+EOT
+        chmod 0755 ${SVN_BASE}/${DIR}/${REP}/hooks/pre-revprop-change
         chown -R apache:apache ${SVN_BASE}/${DIR}/${REP}
         echo "Repository ${SVN_BASE}/${DIR}/${REP} inside group '${current_desc}' created..."
       fi
