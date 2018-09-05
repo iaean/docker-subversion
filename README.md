@@ -84,7 +84,7 @@ Beside `svn://` `http://`is exposed only. To provide adequate security and handl
 ProxyPreserveHost On
 RequestHeader set X-Forwarded-Proto "https"
 
-ProxyPass / http://subversion:4711/
+ProxyPass / http://subversion:4711/ connectiontimeout=5 timeout=300
 ProxyPassReverse / http://subversion:4711/
 ```
 
